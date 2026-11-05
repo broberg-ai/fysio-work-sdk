@@ -1,14 +1,30 @@
-// @fysio-work/sdk — early access.
-//
-// This first release exists to prove the publishing chain end to end (F006.23).
-// It deliberately exports NO module API: createModule and the rest arrive in F006.7,
-// and a stub that pretends otherwise would be a promise the package cannot keep.
+// @fysio-work/sdk — early access. createModule v0 is built and tested against a FAKE core;
+// core itself does not exist yet (plan F006). Do not run it in production.
 
-/** Where the SDK stands. Read it; do not build on anything else yet. */
+export { createModule, strictBody, fail, ModuleStartError } from "./module";
+export type {
+  CreateModuleOptions,
+  FysioModule,
+  GdprHandlers,
+  ModuleEnv,
+  Principal,
+  RequestContext,
+  StartOptions,
+  TicketVerifier,
+  ClinicContext,
+} from "./module";
+export { createCoreClient, type CoreClient } from "./generated/core-client";
+export { CoreError, type CallContext, type CoreClientOptions } from "./core-call";
+export * as contracts from "./generated/contracts";
+export { createLogger, REDACTED, type Logger, type LoggerOptions, type LogSink } from "./log";
+export { parseStrict, strippedKeys } from "./strict";
+export { checkSources, checkModuleDir, type CheckFinding } from "./check";
+
+/** Where the SDK stands. */
 export const sdkStatus = {
   name: "@fysio-work/sdk",
   stage: "early-access",
-  moduleApi: false,
+  moduleApi: "v0-preview",
   docs: "https://fysio.work/developer/sdk",
 } as const;
 
@@ -16,7 +32,7 @@ export const sdkStatus = {
 export function welcome(): string {
   return [
     "Velkommen til fysio.work SDK.",
-    "SDK'et er i early access og under opbygning — modul-API'et (createModule) er ikke udgivet endnu.",
+    "SDK'et er i early access — createModule v0 er en forhåndsversion, der endnu ikke kører mod en rigtig platform.",
     `Læs mere og skriv dig op: ${sdkStatus.docs}`,
   ].join("\n");
 }

@@ -1,0 +1,86 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "fysio.work module API (what core calls on every module)",
+    "version": "0.1.0",
+    "description": "Served by createModule; a module does not implement these by hand. Request bodies are strict (unknown field -> 400), response bodies tolerant (unknown field ignored). Headers: see runtime.json."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "description": "Process is alive. Says nothing about whether the module works — core judges that (§3.11).",
+        "responses": {
+          "200": { "description": "alive", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } } },
+          "503": { "description": "draining", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } } }
+        }
+      }
+    },
+    "/_fysio/gdpr/export": {
+      "post": {
+        "operationId": "exportPatient",
+        "description": "Core asks for everything the module holds about one patient in one clinic (§3.10).",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PatientRef" } } } },
+        "responses": {
+          "200": { "description": "export", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PatientExport" } } } }
+        }
+      }
+    },
+    "/_fysio/gdpr/delete": {
+      "post": {
+        "operationId": "deletePatient",
+        "description": "Core asks the module to delete what it holds about one patient in one clinic (§3.10).",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PatientRef" } } } },
+        "responses": {
+          "200": { "description": "deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PatientDeleted" } } } }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "required": ["status"],
+        "properties": { "status": { "enum": ["ok", "draining"] } }
+      },
+      "PatientRef": {
+        "type": "object",
+        "required": ["patientId"],
+        "properties": { "patientId": { "type": "string", "minLength": 1, "maxLength": 128 } }
+      },
+      "PatientExport": {
+        "type": "object",
+        "required": ["patientId", "data"],
+        "properties": {
+          "patientId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "data": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "PatientDeleted": {
+        "type": "object",
+        "required": ["patientId", "deleted"],
+        "properties": {
+          "patientId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "deleted": { "const": true }
+        }
+      },
+      "ErrorBody": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message", "traceId"],
+            "properties": {
+              "code": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+              "message": { "type": "string" },
+              "traceId": { "type": "string" },
+              "fields": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

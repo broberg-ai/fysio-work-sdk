@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fysio.work/spec/manifest.schema.json",
+  "title": "Manifest",
+  "description": "Module manifest v1 (plan F006 §3.1, §3.4, §3.6, §6.1). Validated by createModule at start. Version and image digest are NOT here on purpose: they are derived from the signed image (§3.12), never self-reported.",
+  "type": "object",
+  "required": ["manifestVersion", "id", "name", "permissions", "patientDataTables", "egress", "config"],
+  "properties": {
+    "manifestVersion": { "const": 1 },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,38}[a-z0-9]$",
+      "description": "Module id. Becomes the service name (svc:<id>)."
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "permissions": {
+      "type": "array",
+      "description": "Rights the module may use, <resource>:<action>. A call never gets more than both the user's role and this list allow (§3.4).",
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$" }
+    },
+    "patientDataTables": {
+      "type": "array",
+      "description": "Tables holding patient data. Reads of these are logged outside the module (§3.6).",
+      "items": { "type": "string", "pattern": "^[a-z_][a-z0-9_]{0,62}$" }
+    },
+    "egress": {
+      "type": "array",
+      "description": "Host names the module may reach besides core (§6.1). Enforced by the network, not by the SDK.",
+      "items": { "type": "string", "pattern": "^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$" }
+    },
+    "config": {
+      "type": "object",
+      "required": ["required"],
+      "properties": {
+        "required": {
+          "type": "array",
+          "description": "Environment variables the module cannot start without (§3.10: missing value -> do not start, say which).",
+          "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" }
+        }
+      }
+    }
+  }
+}

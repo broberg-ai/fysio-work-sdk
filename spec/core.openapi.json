@@ -1,0 +1,92 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "fysio.work core API (what a module calls on core)",
+    "version": "0.1.0",
+    "description": "DRAFT v0 — core does not exist yet (F006.3, F006.4, F006.6 build it and may change these shapes). Request bodies are strict (unknown field -> 400, never stripped), response bodies tolerant (a new field never breaks an older client). Every call carries the headers in runtime.json: ticket, clinic id, clinic ticket, trace id."
+  },
+  "paths": {
+    "/v1/audit/entries": {
+      "post": {
+        "operationId": "appendAuditEntry",
+        "description": "Write one line in core's audit log (§3.7). Write the request before a call to an external master and the outcome after.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuditEntryRequest" } } } },
+        "responses": {
+          "201": { "description": "recorded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuditEntryReceipt" } } } }
+        }
+      }
+    },
+    "/v1/files/upload-urls": {
+      "post": {
+        "operationId": "createUploadUrl",
+        "description": "A short-lived, clinic-scoped presigned URL for one file (§3.6). The module never holds storage keys.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UploadUrlRequest" } } } },
+        "responses": {
+          "201": { "description": "issued", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UploadUrl" } } } }
+        }
+      }
+    },
+    "/v1/events": {
+      "post": {
+        "operationId": "publishEvent",
+        "description": "Publish a domain event. Core builds the envelope (events.asyncapi.json) — the module never sets clinic, time or id itself.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EventPublishRequest" } } } },
+        "responses": {
+          "202": { "description": "accepted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EventAccepted" } } } }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuditEntryRequest": {
+        "type": "object",
+        "required": ["action", "outcome"],
+        "properties": {
+          "action": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{1,63}$" },
+          "outcome": { "enum": ["requested", "confirmed", "rejected", "unknown"] },
+          "subjectRef": { "type": "string", "minLength": 1, "maxLength": 128, "description": "Patient reference; core pseudonymises it." }
+        }
+      },
+      "AuditEntryReceipt": {
+        "type": "object",
+        "required": ["entryId", "recordedAt"],
+        "properties": {
+          "entryId": { "type": "string" },
+          "recordedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UploadUrlRequest": {
+        "type": "object",
+        "required": ["fileName", "contentType", "sizeBytes"],
+        "properties": {
+          "fileName": { "type": "string", "minLength": 1, "maxLength": 255 },
+          "contentType": { "type": "string", "pattern": "^[a-z]+/[a-z0-9.+-]+$" },
+          "sizeBytes": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "UploadUrl": {
+        "type": "object",
+        "required": ["url", "method", "expiresAt"],
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "method": { "const": "PUT" },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "EventPublishRequest": {
+        "type": "object",
+        "required": ["type", "data"],
+        "properties": {
+          "type": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-.]*$" },
+          "data": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "EventAccepted": {
+        "type": "object",
+        "required": ["eventId"],
+        "properties": { "eventId": { "type": "string" } }
+      }
+    }
+  }
+}

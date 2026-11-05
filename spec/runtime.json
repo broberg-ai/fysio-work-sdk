@@ -1,0 +1,25 @@
+{
+  "$comment": "Runtime contract (plan F006 §3.1, §3.10). The single source for header names, the shutdown grace period and the platform caller identity. Generated into src/generated/contracts.ts — never repeat these values by hand.",
+  "version": "0.1.0",
+  "headers": {
+    "ticket": "authorization",
+    "clinicId": "x-fysio-clinic-id",
+    "clinicTicket": "x-fysio-clinic-ticket",
+    "traceId": "x-fysio-trace-id"
+  },
+  "coreSubject": "svc:fysio-work-core",
+  "defaultPort": 8080,
+  "shutdownGraceSeconds": 30,
+  "alwaysLoggableFields": [
+    "traceId",
+    "clinicId",
+    "method",
+    "route",
+    "status",
+    "durationMs",
+    "errorName",
+    "inflight",
+    "timedOut",
+    "operation"
+  ]
+}

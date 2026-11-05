@@ -1,21 +1,77 @@
-// Mutation guard: each mutation of src/index.ts must turn the test suite red.
+// Mutation guard: each mutation must turn the test suite red.
 // A test that stays green when the code under it is broken proves nothing.
+// `regenerate: true` re-runs the generator after mutating it, so the drift test cannot be
+// what catches the mutation — the behaviour tests must.
 import { readFileSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 
-const file = new URL("../src/index.ts", import.meta.url);
-const original = readFileSync(file, "utf8");
+const at = (p) => new URL(`../${p}`, import.meta.url);
+const regen = () => execSync("node scripts/generate.mjs", { stdio: "ignore", cwd: new URL("..", import.meta.url) });
+
 const mutations = [
-  ["adds an export", (s) => s + "\nexport const createModule = () => {};\n"],
-  ["claims the module API exists", (s) => s.replace("moduleApi: false", "moduleApi: true")],
-  ["drops the docs link from the welcome", (s) => s.replace("`Læs mere og skriv dig op: ${sdkStatus.docs}`", "\"Læs mere\"")],
+  // spec -> generated
+  { name: "spec changed without regenerating", file: "spec/core.openapi.json",
+    mutate: (s) => s.replace('"eventId": { "type": "string" }', '"eventId": { "type": "string" }, "queuedAt": { "type": "string" }') },
+  { name: "requests generated tolerant instead of strict", file: "scripts/generate.mjs", regenerate: true,
+    mutate: (s) => s.replace('mode === "strict" ? "z.strictObject" : "z.object"', '"z.object"') },
+  { name: "responses generated strict instead of tolerant", file: "scripts/generate.mjs", regenerate: true,
+    mutate: (s) => s.replace('mode === "strict" ? "z.strictObject" : "z.object"', '"z.strictObject"') },
+  { name: "generator ignores unknown keywords", file: "scripts/generate.mjs", regenerate: true,
+    mutate: (s) => s.replace("throw new Error(`${where}: unsupported keyword", "void (`${where}: unsupported keyword") },
+  // core client
+  { name: "client does not check the request before sending", file: "src/core-call.ts",
+    mutate: (s) => s.replace("const payload = requestSchema.parse(body);", "const payload = body;") },
+  { name: "client does not forward the trace id", file: "src/core-call.ts",
+    mutate: (s) => s.replace("[h.traceId]: ctx.traceId,", "") },
+  // createModule
+  { name: "ticket check skipped when no ticket", file: "src/module.ts",
+    mutate: (s) => s.replace('if (!bearer) return fail(c, 401, "missing_ticket"', 'if (false) return fail(c, 401, "missing_ticket"') },
+  { name: "ticket verifier failure ignored", file: "src/module.ts",
+    mutate: (s) => s.replace('return fail(c, 401, "invalid_ticket", "Billetten er ugyldig eller udløbet.");', 'principal = { subject: "anon" };') },
+  { name: "clinic context not required", file: "src/module.ts",
+    mutate: (s) => s.replace("if (!clinicId || !clinicTicket) return", "if (false) return") },
+  { name: "trace id not echoed", file: "src/module.ts",
+    mutate: (s) => s.replace("c.header(H.traceId, traceId);", "") },
+  { name: "GDPR endpoints open to any ticket", file: "src/module.ts",
+    mutate: (s) => s.replace("if (c.var.principal.subject !== RUNTIME.coreSubject) return", "if (false) return") },
+  { name: "draining does not refuse new calls", file: "src/module.ts",
+    mutate: (s) => s.replace("if (draining) {", "if (false) {") },
+  { name: "shutdown does not wait for calls in flight", file: "src/module.ts",
+    mutate: (s) => s.replace("if (inflight === 0) return resolve(false);", "return resolve(false);") },
+  { name: "missing config ignored", file: "src/module.ts",
+    mutate: (s) => s.replace("if (missing.length) throw", "if (false) throw") },
+  { name: "error message leaks into the log", file: "src/module.ts",
+    mutate: (s) => s.replace("errorName: err.name,", "errorName: err.message,") },
+  // strict input
+  { name: "stripped keys not detected", file: "src/strict.ts",
+    mutate: (s) => s.replace("return k in output ? strippedKeys(input[k], output[k], p) : [p];", "return [];") },
+  // logging
+  { name: "log allowlist disabled", file: "src/log.ts",
+    mutate: (s) => s.replace("if (!allowed.has(key) || !isLogValue(value)) {", "if (!isLogValue(value)) {") },
+  { name: "CPR filter disabled", file: "src/log.ts",
+    mutate: (s) => s.replace("value.replace(CPR, REDACTED)", "value") },
+  { name: "free-text event names allowed", file: "src/log.ts",
+    mutate: (s) => s.replace('EVENT_NAME.test(event) ? event : "invalid_event_name"', "event") },
+  // check
+  { name: "check misses Bun.serve", file: "src/check.ts",
+    mutate: (s) => s.replace('[/\\bBun\\.serve\\s*\\(/, "Bun.serve"],', "") },
+  { name: "check does not require createModule", file: "src/check.ts",
+    mutate: (s) => s.replace("if (!files.some((f) => CREATE_MODULE.test(f.content)))", "if (false)") },
 ];
+
 let survived = 0;
-try {
-  for (const [name, mutate] of mutations) {
-    const m = mutate(original);
-    if (m === original) throw new Error(`mutation "${name}" did not change the source`);
-    writeFileSync(file, m);
+for (const { name, file, mutate, regenerate } of mutations) {
+  const path = at(file);
+  const original = readFileSync(path, "utf8");
+  const m = mutate(original);
+  if (m === original) {
+    console.error(`BROKEN MUTATION: "${name}" did not change ${file}`);
+    survived++;
+    continue;
+  }
+  try {
+    writeFileSync(path, m);
+    if (regenerate) regen();
     try {
       execSync("npx vitest run", { stdio: "ignore" });
       console.error(`SURVIVED: ${name}`);
@@ -23,8 +79,9 @@ try {
     } catch {
       console.log(`killed: ${name}`);
     }
+  } finally {
+    writeFileSync(path, original);
+    if (regenerate) regen();
   }
-} finally {
-  writeFileSync(file, original);
 }
 if (survived) process.exit(1);

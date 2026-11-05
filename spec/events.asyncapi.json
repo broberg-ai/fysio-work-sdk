@@ -1,0 +1,33 @@
+{
+  "asyncapi": "3.0.0",
+  "info": {
+    "title": "fysio.work events",
+    "version": "0.1.0",
+    "description": "DRAFT v0. Only the envelope is fixed here; each event type's data schema is added when the module that emits it is built. Core builds the envelope — id, clinic and time are never set by a module."
+  },
+  "channels": {
+    "events": {
+      "address": "events",
+      "messages": { "event": { "payload": { "$ref": "#/components/schemas/EventEnvelope" } } }
+    }
+  },
+  "operations": {
+    "receiveEvent": { "action": "receive", "channel": { "$ref": "#/channels/events" } }
+  },
+  "components": {
+    "schemas": {
+      "EventEnvelope": {
+        "type": "object",
+        "required": ["id", "type", "clinicId", "occurredAt", "traceId", "data"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-.]*$" },
+          "clinicId": { "type": "string" },
+          "occurredAt": { "type": "string", "format": "date-time" },
+          "traceId": { "type": "string" },
+          "data": { "type": "object", "additionalProperties": true }
+        }
+      }
+    }
+  }
+}

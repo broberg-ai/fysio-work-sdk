@@ -1,12 +1,13 @@
 {
   "name": "@fysio-work/sdk",
   "version": "0.0.2",
-  "description": "fysio.work SDK — the kit every module on the fysio.work clinic platform is built with. Early access: this release is a welcome and a status marker; the module API (createModule) is not published yet.",
+  "description": "fysio.work SDK — the kit every module on the fysio.work clinic platform is built with. Early access: createModule v0 is a preview, tested against a fake core.",
   "type": "module",
   "license": "MIT",
   "sideEffects": false,
   "files": [
     "dist",
+    "spec",
     "README.md",
     "LICENSE"
   ],
@@ -25,6 +26,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "generate": "node scripts/generate.mjs",
     "build": "rm -rf dist && tsup",
     "test": "vitest run && node test/mutations.mjs",
     "typecheck": "tsc --noEmit"
@@ -52,5 +54,13 @@
   },
   "bugs": {
     "url": "https://github.com/broberg-ai/fysio-work-sdk/issues"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.6",
+    "hono": "^4.13.16",
+    "zod": "^4.6.7"
+  },
+  "bin": {
+    "fysio-work": "./dist/cli.js"
   }
 }
