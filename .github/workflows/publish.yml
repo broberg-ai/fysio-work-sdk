@@ -1,0 +1,65 @@
+name: publish
+
+# Publishes @fysio-work/sdk to npm via OIDC Trusted Publishing — no token, no secret.
+# Tag format: v<version> (e.g. v0.0.2). Follows components' publish.yml template.
+# Provenance requires this repo to be PUBLIC (that is why the SDK lives here, F006.24).
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Test (incl. mutation guard)
+        run: npm test
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # lets GitHub mint the OIDC token npm exchanges for publish
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      # OIDC trusted publishing needs npm >= 11.5.1; 12.0.0's global install breaks provenance (components).
+      - name: Upgrade npm
+        run: npm install -g npm@11.5.1
+      - run: npm ci
+      - run: npm run build
+      - name: Guard — tag matches package.json version
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          if [ "v$PKG" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $PKG"
+            exit 1
+          fi
+      - name: Guard — version not already on npm
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          if npm view "@fysio-work/sdk@$PKG" version >/dev/null 2>&1; then
+            echo "::error::@fysio-work/sdk@$PKG already published — bump the version first."
+            exit 1
+          fi
+      - name: Publish (OIDC + provenance)
+        run: npm publish --access public --provenance

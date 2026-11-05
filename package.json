@@ -1,0 +1,56 @@
+{
+  "name": "@fysio-work/sdk",
+  "version": "0.0.2",
+  "description": "fysio.work SDK — the kit every module on the fysio.work clinic platform is built with. Early access: this release is a welcome and a status marker; the module API (createModule) is not published yet.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsup",
+    "test": "vitest run && node test/mutations.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "keywords": [
+    "fysio.work",
+    "sdk",
+    "physiotherapy",
+    "clinic",
+    "modules"
+  ],
+  "homepage": "https://fysio.work/developer",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/broberg-ai/fysio-work-sdk.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/broberg-ai/fysio-work-sdk/issues"
+  }
+}
