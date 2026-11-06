@@ -18,7 +18,9 @@ export { CoreError, type CallContext, type CoreClientOptions } from "./core-call
 export * as contracts from "./generated/contracts";
 export { createLogger, REDACTED, type Logger, type LoggerOptions, type LogSink } from "./log";
 export { parseStrict, strippedKeys } from "./strict";
-export { checkSources, checkModuleDir, type CheckFinding } from "./check";
+export { checkSources, checkModuleDir, checkManifest, MANIFEST_FILE, type CheckFinding } from "./check";
+/** The Zod the SDK is built with — use it for strictBody so the versions always match. */
+export { z } from "zod";
 
 /** Where the SDK stands. */
 export const sdkStatus = {

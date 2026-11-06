@@ -8,7 +8,24 @@
     "skipLibCheck": true,
     "allowJs": true,
     "checkJs": false,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@fysio-work/sdk": [
+        "./src/index.ts"
+      ],
+      "@fysio-work/sdk/sandbox": [
+        "./src/sandbox.ts"
+      ]
+    }
   },
-  "include": ["src", "test", "examples", "scripts"]
+  "include": [
+    "src",
+    "test",
+    "examples",
+    "scripts",
+    "templates",
+    "vitest.config.ts"
+  ]
 }

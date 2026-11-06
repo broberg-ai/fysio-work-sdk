@@ -1,0 +1,9 @@
+{
+  "manifestVersion": 1,
+  "id": "hello",
+  "name": "Hej-modul",
+  "permissions": ["notes:write"],
+  "patientDataTables": [],
+  "egress": [],
+  "config": { "required": [] }
+}

@@ -5,8 +5,10 @@ describe("@fysio-work/sdk — public surface", () => {
   test("exports exactly the documented API", () => {
     expect(Object.keys(sdk).sort()).toEqual([
       "CoreError",
+      "MANIFEST_FILE",
       "ModuleStartError",
       "REDACTED",
+      "checkManifest",
       "checkModuleDir",
       "checkSources",
       "contracts",
@@ -19,7 +21,14 @@ describe("@fysio-work/sdk — public surface", () => {
       "strictBody",
       "strippedKeys",
       "welcome",
+      "z",
     ]);
+  });
+
+  test("the sandbox is its own entry point, never part of the module runtime", async () => {
+    const sandbox = await import("../src/sandbox");
+    expect(Object.keys(sandbox).sort()).toEqual(["createSandbox", "runSandbox", "toCurl"]);
+    expect(Object.keys(sdk)).not.toContain("createSandbox");
   });
 
   test("the status says early access and a v0 preview", () => {

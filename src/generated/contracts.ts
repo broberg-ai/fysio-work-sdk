@@ -220,7 +220,7 @@ export const MODULE_OPERATIONS = {
 
 /** Endpoints core serves (spec/core.openapi.json). */
 export const CORE_OPERATIONS = {
-  appendAuditEntry: { method: "POST", path: "/v1/audit/entries", status: 201 },
-  createUploadUrl: { method: "POST", path: "/v1/files/upload-urls", status: 201 },
-  publishEvent: { method: "POST", path: "/v1/events", status: 202 },
+  appendAuditEntry: { method: "POST", path: "/v1/audit/entries", status: 201, permission: "audit:write" },
+  createUploadUrl: { method: "POST", path: "/v1/files/upload-urls", status: 201, permission: "files:write" },
+  publishEvent: { method: "POST", path: "/v1/events", status: 202, permission: "events:publish" },
 } as const;

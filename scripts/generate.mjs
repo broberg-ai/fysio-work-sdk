@@ -111,7 +111,10 @@ function emitSchemas(named, source) {
 
 const HTTP_METHODS = ["get", "post", "put", "patch", "delete"];
 
-function operations(api, source) {
+// `x-fysio-permission`: the right a call needs (core-API only). Core refuses to start if an
+// operation lacks one, so the generator refuses too. Its form is the manifest's permission
+// pattern — one source for what a permission looks like.
+function operations(api, source, permissionPattern) {
   const ops = [];
   for (const [path, item] of Object.entries(api.paths ?? {})) {
     if (/[{}]/.test(path)) throw new Error(`${source}: path parameters are not supported yet (${path})`);
@@ -124,8 +127,15 @@ function operations(api, source) {
       const [status, res] = success[0];
       const resRef = res.content?.["application/json"]?.schema?.$ref;
       if (!resRef) throw new Error(`${source}: ${op.operationId} 2xx response needs a JSON schema $ref`);
+      let permission = null;
+      if (permissionPattern) {
+        permission = op["x-fysio-permission"];
+        if (typeof permission !== "string" || !new RegExp(permissionPattern).test(permission))
+          throw new Error(`${source}: ${op.operationId} needs x-fysio-permission matching ${permissionPattern}`);
+      }
       ops.push({
         id: op.operationId,
+        permission,
         method: method.toUpperCase(),
         path,
         status: Number(status),
@@ -164,10 +174,13 @@ export function generate(specDir) {
   if (title !== "Manifest") throw new Error("manifest.schema.json: title must be Manifest");
 
   const moduleOps = operations(moduleApi, "module.openapi.json");
-  const coreOps = operations(coreApi, "core.openapi.json");
+  const coreOps = operations(coreApi, "core.openapi.json", manifest.properties.permissions.items.pattern);
   const opTable = (ops) =>
     `{\n${ops
-      .map((o) => `  ${o.id}: { method: ${JSON.stringify(o.method)}, path: ${JSON.stringify(o.path)}, status: ${o.status} },`)
+      .map(
+        (o) =>
+          `  ${o.id}: { method: ${JSON.stringify(o.method)}, path: ${JSON.stringify(o.path)}, status: ${o.status}${o.permission ? `, permission: ${JSON.stringify(o.permission)}` : ""} },`,
+      )
       .join("\n")}\n} as const`;
 
   const contracts = [

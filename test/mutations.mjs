@@ -18,6 +18,10 @@ const mutations = [
     mutate: (s) => s.replace('mode === "strict" ? "z.strictObject" : "z.object"', '"z.strictObject"') },
   { name: "generator ignores unknown keywords", file: "scripts/generate.mjs", regenerate: true,
     mutate: (s) => s.replace("throw new Error(`${where}: unsupported keyword", "void (`${where}: unsupported keyword") },
+  { name: "generator does not require x-fysio-permission", file: "scripts/generate.mjs", regenerate: true,
+    mutate: (s) => s.replace("if (typeof permission !== \"string\" || !new RegExp(permissionPattern).test(permission))", "if (false)") },
+  { name: "permission not generated into CORE_OPERATIONS", file: "scripts/generate.mjs", regenerate: true,
+    mutate: (s) => s.replace("${o.permission ? `, permission: ${JSON.stringify(o.permission)}` : \"\"}", "") },
   // core client
   { name: "client does not check the request before sending", file: "src/core-call.ts",
     mutate: (s) => s.replace("const payload = requestSchema.parse(body);", "const payload = body;") },
@@ -57,6 +61,30 @@ const mutations = [
     mutate: (s) => s.replace('[/\\bBun\\.serve\\s*\\(/, "Bun.serve"],', "") },
   { name: "check does not require createModule", file: "src/check.ts",
     mutate: (s) => s.replace("if (!files.some((f) => CREATE_MODULE.test(f.content)))", "if (false)") },
+  { name: "check misses Supabase", file: "src/check.ts",
+    mutate: (s) => s.replace("@supabase\\/[^/]+|", "") },
+  { name: "check ignores external database hosts", file: "src/check.ts",
+    mutate: (s) => s.replace("const host = EXTERNAL_DB_HOST.exec(text);", "const host = null;") },
+  { name: "check skips package.json", file: "src/check.ts",
+    mutate: (s) => s.replace('} else if (name === "package.json") {', "} else if (false) {") },
+  { name: "check does not validate the manifest", file: "src/check.ts",
+    mutate: (s) => s.replace("if (r.success) return [];", "if (true) return [];") },
+  { name: "check accepts a missing manifest", file: "src/check.ts",
+    mutate: (s) => s.replace("if (content === undefined)\n", "if (false)\n") },
+  // cli + init
+  { name: "cli exits 0 on findings", file: "src/cli-main.ts",
+    mutate: (s) => s.replace("return findings.length ? 1 : 0;", "return 0;") },
+  { name: "init keeps the template's module id", file: "src/init.ts",
+    mutate: (s) => s.replace("m.id = id;", "") },
+  { name: "init does not pin this SDK version", file: "src/init.ts",
+    mutate: (s) => s.replace('p.dependencies["@fysio-work/sdk"] = sdkVersion();', "") },
+  // sandbox + template
+  { name: "sandbox accepts tickets it never issued", file: "src/sandbox.ts",
+    mutate: (s) => s.replace('if (!p) throw new Error("unknown ticket");', 'if (!p) return { subject: "anon" };') },
+  { name: "runSandbox does not wire the module to the sandbox core", file: "src/sandbox.ts",
+    mutate: (s) => s.replace("core: sandbox.coreFor(() => mod!.manifest.id),", "core: undefined,") },
+  { name: "template deletePatient deletes nothing", file: "templates/module/src/module.ts",
+    mutate: (s) => s.replace("notes.set(ctx.clinic.id, forClinic(ctx.clinic.id).filter((n) => n.patientId !== patientId));", "") },
 ];
 
 let survived = 0;

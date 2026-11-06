@@ -33,6 +33,8 @@ describe("specs -> generated TS (drift guard)", () => {
   test.each([
     ["an unknown JSON Schema keyword", (s: any) => (s.components.schemas.EventAccepted.oneOf = [])],
     ["additionalProperties:false (strictness is by direction)", (s: any) => (s.components.schemas.EventAccepted.additionalProperties = false)],
+    ["a core operation without x-fysio-permission", (s: any) => delete s.paths["/v1/events"].post["x-fysio-permission"]],
+    ["an x-fysio-permission that is not <resource>:<action>", (s: any) => (s.paths["/v1/events"].post["x-fysio-permission"] = "Events")],
     ["a duplicate schema name across specs", (s: any) => (s.components.schemas.PatientRef = { type: "object", properties: {} })],
   ])("the generator refuses %s instead of dropping it", (_name, mutate) => {
     const dir = mkdtempSync(join(tmpdir(), "spec-"));
@@ -43,6 +45,15 @@ describe("specs -> generated TS (drift guard)", () => {
     writeFileSync(p, JSON.stringify(spec));
     expect(() => gen(dir)).toThrow();
   });
+});
+
+test("every core operation carries the permission the spec names", () => {
+  const spec = JSON.parse(readFileSync(join(specDir, "core.openapi.json"), "utf8"));
+  const fromSpec = Object.values(spec.paths).flatMap((item: any) =>
+    Object.values(item).map((op: any) => [op.operationId, op["x-fysio-permission"]]),
+  );
+  expect(Object.fromEntries(Object.entries(c.CORE_OPERATIONS).map(([id, op]) => [id, op.permission]))).toEqual(Object.fromEntries(fromSpec));
+  expect(c.CORE_OPERATIONS.publishEvent.permission).toBe("events:publish");
 });
 
 describe("strict on input, tolerant on responses", () => {

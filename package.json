@@ -8,6 +8,7 @@
   "files": [
     "dist",
     "spec",
+    "templates",
     "README.md",
     "LICENSE"
   ],
@@ -19,6 +20,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./sandbox": {
+      "types": "./dist/sandbox.d.ts",
+      "import": "./dist/sandbox.js",
+      "require": "./dist/sandbox.cjs"
     },
     "./package.json": "./package.json"
   },

@@ -206,14 +206,17 @@ describe("shutdown", () => {
     const mod = hello();
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
+    let arrived!: () => void;
+    const reached = new Promise<void>((r) => (arrived = r));
     mod.app.get("/slow", async (c) => {
+      arrived();
       await gate;
       return c.json({ done: true });
     });
     const { port } = await mod.start({ port: 0, handleSignals: false });
     const base = `http://127.0.0.1:${port}`;
     const slow = fetch(`${base}/slow`, { headers: headers() });
-    await new Promise((r) => setTimeout(r, 50)); // let /slow reach its handler
+    await reached; // /slow is in its handler — no timing guess
     const stopping = mod.stop();
     expect(mod.draining).toBe(true);
     expect((await mod.app.request("/hello", { headers: headers() })).status).toBe(503);
@@ -228,9 +231,14 @@ describe("shutdown", () => {
 
   test("a call that outlives the grace period does not hold shutdown forever", async () => {
     const mod = hello({ shutdownGraceMs: 50 });
-    mod.app.get("/hang", () => new Promise<Response>(() => {}));
+    let arrived!: () => void;
+    const reached = new Promise<void>((r) => (arrived = r));
+    mod.app.get("/hang", () => {
+      arrived();
+      return new Promise<Response>(() => {});
+    });
     void mod.app.request("/hang", { headers: headers() });
-    await new Promise((r) => setTimeout(r, 10));
+    await reached;
     expect(await mod.stop()).toEqual({ timedOut: true });
     expect(lines.find((l) => l.event === "shutdown.done")).toMatchObject({ timedOut: true, inflight: 1 });
   });

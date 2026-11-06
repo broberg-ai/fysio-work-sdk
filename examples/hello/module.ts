@@ -1,17 +1,11 @@
 // Example module: the smallest thing built with createModule. Notes are kept in memory —
 // a real module's data lives in the storage core provisions (§3.6), which does not exist yet.
+import { readFileSync } from "node:fs";
 import { z } from "zod";
 import { createModule, strictBody, type CreateModuleOptions } from "../../src/index";
 
-export const manifest = {
-  manifestVersion: 1,
-  id: "hello",
-  name: "Hej-modul",
-  permissions: ["notes:write"],
-  patientDataTables: [],
-  egress: [],
-  config: { required: [] },
-};
+// The manifest lives in fysio-work.manifest.json, so `fysio-work check` can validate it too.
+export const manifest: Record<string, unknown> = JSON.parse(readFileSync(new URL("./fysio-work.manifest.json", import.meta.url), "utf8"));
 
 export function buildHello(deps: Pick<CreateModuleOptions, "tickets" | "core" | "env" | "shutdownGraceMs"> & { sink?: NonNullable<CreateModuleOptions["log"]>["sink"] }) {
   const notes = new Map<string, string[]>();

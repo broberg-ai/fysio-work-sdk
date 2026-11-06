@@ -1,0 +1,53 @@
+// Dit modul. Alt der står efter createModule(...) ligger bag platformens billet- og
+// klinik-tjek — du skriver kun din egen forretningslogik.
+import { readFileSync } from "node:fs";
+import { createModule, strictBody, z, type CreateModuleOptions } from "@fysio-work/sdk";
+
+export const manifest: Record<string, unknown> = JSON.parse(
+  readFileSync(new URL("../fysio-work.manifest.json", import.meta.url), "utf8"),
+);
+
+/** Det platformen (eller sandkassen) giver modulet. */
+export type ModuleDeps = Pick<CreateModuleOptions, "tickets" | "core" | "env" | "log">;
+
+export function buildModule(deps: ModuleDeps) {
+  // Kun i hukommelsen, som eksempel. Modulets rigtige data bor i det lager platformen
+  // opretter til modulet i EU — det kommer med platformen.
+  const notes = new Map<string, { patientId: string; text: string }[]>();
+  const forClinic = (clinicId: string) => notes.get(clinicId) ?? [];
+
+  const mod = createModule({
+    manifest,
+    tickets: deps.tickets,
+    core: deps.core,
+    env: deps.env,
+    // Kun navngivne felter logges — aldrig fritekst eller persondata.
+    log: { fields: ["noteCount"], ...deps.log },
+    gdpr: {
+      exportPatient: async (patientId, ctx) => ({
+        notes: forClinic(ctx.clinic.id).filter((n) => n.patientId === patientId).map((n) => n.text),
+      }),
+      deletePatient: async (patientId, ctx) => {
+        notes.set(ctx.clinic.id, forClinic(ctx.clinic.id).filter((n) => n.patientId !== patientId));
+      },
+    },
+  });
+
+  mod.app.get("/", (c) => c.json({ hej: c.var.principal.subject, klinik: c.var.clinic.id }));
+
+  mod.app.get("/notes", (c) => c.json({ notes: forClinic(c.var.clinic.id) }));
+
+  mod.app.post(
+    "/notes",
+    strictBody(z.object({ patientId: z.string().min(1).max(128), text: z.string().min(1).max(500) })),
+    async (c) => {
+      const list = [...forClinic(c.var.clinic.id), c.var.body];
+      notes.set(c.var.clinic.id, list);
+      await c.var.core?.appendAuditEntry({ action: "note.created", outcome: "confirmed" });
+      c.var.log.info("note.created", { noteCount: list.length });
+      return c.json({ count: list.length }, 201);
+    },
+  );
+
+  return mod;
+}
