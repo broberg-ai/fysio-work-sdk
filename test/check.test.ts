@@ -94,6 +94,13 @@ describe("check: the manifest file", () => {
       { rule: "manifest-invalid", file: "fysio-work.manifest.json", line: 3, message: expect.stringContaining("ved id") },
     ]);
   });
+  test("pricing: free and paid are valid, anything else is refused", () => {
+    expect(checkManifest("fysio-work.manifest.json", file({ ...valid, pricing: "free" }))).toEqual([]);
+    expect(checkManifest("fysio-work.manifest.json", file({ ...valid, pricing: "paid" }))).toEqual([]);
+    expect(checkManifest("fysio-work.manifest.json", file({ ...valid, pricing: "gratis" }))).toEqual([
+      { rule: "manifest-invalid", file: "fysio-work.manifest.json", line: 11, message: expect.stringContaining("ved pricing") },
+    ]);
+  });
   test("an unknown field is refused, never ignored", () => {
     expect(checkManifest("fysio-work.manifest.json", file({ ...valid, version: "1.0.0" }))).toEqual([
       { rule: "manifest-invalid", file: "fysio-work.manifest.json", line: 11, message: expect.stringContaining("ved version") },

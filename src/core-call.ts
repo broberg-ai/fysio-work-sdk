@@ -34,7 +34,7 @@ export function contextHeaders(ctx: CallContext): Record<string, string> {
   const h = RUNTIME.headers;
   return {
     [h.ticket]: `Bearer ${ctx.ticket}`,
-    [h.clinicId]: ctx.clinicId,
+    [h.organizationId]: ctx.clinicId,
     [h.clinicTicket]: ctx.clinicTicket,
     [h.traceId]: ctx.traceId,
   };

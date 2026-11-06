@@ -13,6 +13,10 @@
       "description": "Module id. Becomes the service name (svc:<id>)."
     },
     "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "pricing": {
+      "enum": ["free", "paid"],
+      "description": "free = the developer gives the module away: an organisation may install and use it without a module subscription (its base subscription is still required). paid = a module subscription is required. Absent = paid."
+    },
     "permissions": {
       "type": "array",
       "description": "Rights the module may use, <resource>:<action>. A call never gets more than both the user's role and this list allow (§3.4).",

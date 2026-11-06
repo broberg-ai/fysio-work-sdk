@@ -8,7 +8,7 @@ export const RUNTIME = {
   "version": "0.1.0",
   "headers": {
     "ticket": "authorization",
-    "clinicId": "x-fysio-clinic-id",
+    "organizationId": "x-fysio-organization-id",
     "clinicTicket": "x-fysio-clinic-ticket",
     "traceId": "x-fysio-trace-id"
   },
@@ -43,6 +43,7 @@ export const ManifestStrict = z.strictObject({
   "manifestVersion": z.literal(1),
   "id": z.string().regex(new RegExp("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")),
   "name": z.string().min(1).max(80),
+  "pricing": z.enum(["free","paid"]).optional(),
   "permissions": z.array(z.string().regex(new RegExp("^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$"))),
   "patientDataTables": z.array(z.string().regex(new RegExp("^[a-z_][a-z0-9_]{0,62}$"))),
   "egress": z.array(z.string().regex(new RegExp("^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$"))),
@@ -54,6 +55,7 @@ export const ManifestTolerant = z.object({
   "manifestVersion": z.literal(1),
   "id": z.string().regex(new RegExp("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")),
   "name": z.string().min(1).max(80),
+  "pricing": z.enum(["free","paid"]).optional(),
   "permissions": z.array(z.string().regex(new RegExp("^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$"))),
   "patientDataTables": z.array(z.string().regex(new RegExp("^[a-z_][a-z0-9_]{0,62}$"))),
   "egress": z.array(z.string().regex(new RegExp("^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$"))),

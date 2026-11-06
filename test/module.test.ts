@@ -20,7 +20,7 @@ const hello = (extra: Partial<Parameters<typeof buildHello>[0]> = {}) =>
 function headers(subject = "user:anna", clinicId = "demo", more: Record<string, string> = {}) {
   return {
     [H.ticket]: `Bearer ${core.issueTicket(subject)}`,
-    [H.clinicId]: clinicId,
+    [H.organizationId]: clinicId,
     [H.clinicTicket]: core.issueClinicTicket(clinicId),
     "content-type": "application/json",
     ...more,
@@ -84,8 +84,15 @@ describe("ticket check and clinic context", () => {
     expect((await hello().app.request("/nope")).status).toBe(401);
   });
   test("valid ticket but no clinic -> 400 missing_clinic", async () => {
-    const { [H.clinicId]: _drop, ...h } = headers();
+    const { [H.organizationId]: _drop, ...h } = headers();
     const res = await hello().app.request("/hello", { headers: h });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as any).error.code).toBe("missing_clinic");
+  });
+  test("the organisation header is x-fysio-organization-id; the old x-fysio-clinic-id is not read", async () => {
+    expect(H.organizationId).toBe("x-fysio-organization-id");
+    const { [H.organizationId]: id, ...h } = headers();
+    const res = await hello().app.request("/hello", { headers: { ...h, "x-fysio-clinic-id": id! } });
     expect(res.status).toBe(400);
     expect(((await res.json()) as any).error.code).toBe("missing_clinic");
   });

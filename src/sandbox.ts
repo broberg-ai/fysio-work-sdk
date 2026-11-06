@@ -76,7 +76,7 @@ export function createSandbox(options: SandboxOptions = {}) {
       const call: RecordedCall = {
         operation: name,
         ticketSubject: principal.subject,
-        clinicId: ctx.req.header(H.clinicId),
+        clinicId: ctx.req.header(H.organizationId),
         clinicTicket: ctx.req.header(H.clinicTicket),
         traceId: ctx.req.header(H.traceId),
         body: r.value,
@@ -155,7 +155,7 @@ export async function runSandbox(build: (deps: SandboxDeps) => FysioModule, opti
   if (handleSignals) process.once("SIGINT", () => void mod!.stop().then(() => process.exit(0)));
 
   const base = `http://${options.hostname ?? "localhost"}:${port}`;
-  const clinic = { [H.clinicId]: clinicId, [H.clinicTicket]: sandbox.issueClinicTicket(clinicId) };
+  const clinic = { [H.organizationId]: clinicId, [H.clinicTicket]: sandbox.issueClinicTicket(clinicId) };
   const user = { [H.ticket]: `Bearer ${sandbox.issueTicket("user:sandkasse-bruger")}`, ...clinic };
   const asCore = { [H.ticket]: `Bearer ${sandbox.issueTicket(RUNTIME.coreSubject)}`, ...clinic, "content-type": "application/json" };
   const examples: ExampleCall[] = [

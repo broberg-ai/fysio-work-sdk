@@ -18,7 +18,7 @@ test("the example starts, answers health, and refuses calls without a valid fake
   const { port } = await mod.start({ port: 0, handleSignals: false });
   stop = () => mod.stop();
   const base = `http://127.0.0.1:${port}`;
-  const clinic = { [H.clinicId]: "demo", [H.clinicTicket]: core.issueClinicTicket("demo") };
+  const clinic = { [H.organizationId]: "demo", [H.clinicTicket]: core.issueClinicTicket("demo") };
 
   const health = await fetch(`${base}/health`);
   expect(health.status).toBe(200);

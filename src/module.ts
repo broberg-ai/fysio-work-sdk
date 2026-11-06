@@ -195,7 +195,7 @@ export function createModule(options: CreateModuleOptions): FysioModule {
     } catch {
       return fail(c, 401, "invalid_ticket", "Billetten er ugyldig eller udløbet.");
     }
-    const clinicId = c.req.header(H.clinicId);
+    const clinicId = c.req.header(H.organizationId);
     const clinicTicket = c.req.header(H.clinicTicket);
     if (!clinicId || !clinicTicket) return fail(c, 400, "missing_clinic", "Kaldet mangler klinik-kontekst.");
     const clinic = { id: clinicId, ticket: clinicTicket };

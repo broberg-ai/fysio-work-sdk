@@ -22,7 +22,7 @@ Du får:
 
 | Fil | Hvad |
 |---|---|
-| `fysio-work.manifest.json` | Modulets id, navn, rettigheder og hvilke tabeller der rummer patientdata |
+| `fysio-work.manifest.json` | Modulets id, navn, rettigheder, hvilke tabeller der rummer patientdata, og om modulet er gratis (`"pricing": "free"`; uden feltet er det betalt) |
 | `src/module.ts` | Dit modul — et lille note-eksempel du kan bygge videre på |
 | `src/dev.ts` | Starter modulet mod sandkassen |
 | `test/module.test.ts` | Tests der kører modulet mod sandkassen |
@@ -49,7 +49,7 @@ Sandkassen udskriver færdige `curl`-kald med en billet og en klinik, fx:
 
 ```text
 # Et kald med billet og klinik
-curl -i -H 'authorization: Bearer tk_…' -H 'x-fysio-clinic-id: sandkasse-klinik' -H 'x-fysio-clinic-ticket: ct_…' 'http://localhost:8080/'
+curl -i -H 'authorization: Bearer tk_…' -H 'x-fysio-organization-id: sandkasse-klinik' -H 'x-fysio-clinic-ticket: ct_…' 'http://localhost:8080/'
 ```
 
 Kopiér dem ind i en anden terminal. Med billet svarer modulet 200, uden billet 401. Når dit

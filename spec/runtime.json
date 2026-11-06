@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "headers": {
     "ticket": "authorization",
-    "clinicId": "x-fysio-clinic-id",
+    "organizationId": "x-fysio-organization-id",
     "clinicTicket": "x-fysio-clinic-ticket",
     "traceId": "x-fysio-trace-id"
   },
