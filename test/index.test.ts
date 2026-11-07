@@ -6,6 +6,7 @@ describe("@fysio-work/sdk — public surface", () => {
     expect(Object.keys(sdk).sort()).toEqual([
       "CoreError",
       "MANIFEST_FILE",
+      "MODULE_AUDIENCE_PREFIX",
       "ModuleStartError",
       "REDACTED",
       "checkManifest",

@@ -18,19 +18,28 @@ import { createCoreClient, type CoreClient } from "./generated/core-client";
 import { createLogger, type Logger, type LoggerOptions } from "./log";
 import { parseStrict } from "./strict";
 
-/** Who called, as the injected verifier saw it. */
+/**
+ * Who called, as the injected verifier saw it. `claims` are the ticket's verified JWT claims;
+ * createModule requires `iss` (= the verifier's issuer), `aud` (= module:<manifest id>),
+ * `org` (= the x-fysio-organization-id header) and `data_scope` (organization | self).
+ */
 export interface Principal {
   subject: string;
   claims?: Record<string, unknown>;
 }
 
 /**
- * Verifies the ticket on an incoming call. Injected, because which ticket reaches a module
- * (path a/b) is OPEN decision #1 (F006.2). Throw to reject.
+ * Verifies the ticket on an incoming call: signature, algorithm and expiry. Injected; core
+ * issues the module tickets (path a, F006.2). Throw to reject.
  */
 export interface TicketVerifier {
+  /** Core's issuer URL. A ticket whose `iss` is anything else is refused. */
+  readonly issuer: string;
   verify(ticket: string): Promise<Principal>;
 }
+
+/** A module ticket names exactly one module: aud = module:<manifest id>. */
+export const MODULE_AUDIENCE_PREFIX = "module:";
 
 /** Organization for this call. `ticket` is core's signed organization ticket (§3.6 A) — opaque here. */
 export interface OrganizationContext {
@@ -195,9 +204,18 @@ export function createModule(options: CreateModuleOptions): FysioModule {
     } catch {
       return fail(c, 401, "invalid_ticket", "Billetten er ugyldig eller udløbet.");
     }
+    const claims = principal.claims ?? {};
+    if (claims.iss !== options.tickets.issuer || claims.aud !== MODULE_AUDIENCE_PREFIX + manifest.id) {
+      return fail(c, 401, "invalid_ticket", "Billetten er ugyldig eller udløbet.");
+    }
     const organizationId = c.req.header(H.organizationId);
     const organizationTicket = c.req.header(H.organizationTicket);
     if (!organizationId || !organizationTicket) return fail(c, 400, "missing_organization", "Kaldet mangler organisations-kontekst.");
+    // The organisation is the TICKET's — the header only names it, so it must agree.
+    if (claims.org !== organizationId) return fail(c, 403, "organization_mismatch", "Billetten gælder en anden organisation.");
+    if (claims.data_scope !== "organization" && claims.data_scope !== "self") {
+      return fail(c, 403, "no_data_scope", "Billetten giver ingen adgang til organisationens data.");
+    }
     const organization = { id: organizationId, ticket: organizationTicket };
     c.set("principal", principal);
     c.set("ticket", bearer[1]);

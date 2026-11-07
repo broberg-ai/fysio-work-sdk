@@ -38,7 +38,7 @@ import { createModule, strictBody } from "@fysio-work/sdk";
 
 const mod = createModule({
   manifest, // validated against spec/manifest.schema.json — the module does not start if it is invalid
-  tickets,  // verifies the ticket on each call
+  tickets,  // verifies the ticket on each call; { issuer: core's issuer, verify }
   gdpr: { exportPatient: async (id, ctx) => ({ /* … */ }), deletePatient: async (id, ctx) => {} },
 });
 
@@ -51,7 +51,7 @@ mod.app.post("/notes", strictBody(z.object({ text: z.string() })), async (c) => 
 await mod.start(); // SIGTERM: stop new calls, finish the rest within 30 s, close
 ```
 
-`createModule` sets up: ticket check, organization context, trace id, allowlist logging (CPR filter as last guard), `/health`, the GDPR endpoints core calls, a readable Danish error on failure, and graceful shutdown.
+`createModule` sets up: ticket check (`iss` = core, `aud` = `module:<your id>`, `org` = the `x-fysio-organization-id` header, `data_scope` not `none`), organization context, trace id, allowlist logging (CPR filter as last guard), `/health`, the GDPR endpoints core calls, a readable Danish error on failure, and graceful shutdown.
 
 **It is developer help, not a security boundary.** Everything here runs inside the module's container. Organization isolation, the audit log and outbound network control are enforced by core, Postgres and the network.
 

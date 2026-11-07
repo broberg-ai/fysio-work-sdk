@@ -9,9 +9,23 @@ import { randomUUID } from "node:crypto";
 import { CORE_OPERATIONS, MODULE_OPERATIONS, RUNTIME } from "./generated/contracts";
 import * as c from "./generated/contracts";
 import { parseStrict } from "./strict";
-import type { CreateModuleOptions, FysioModule, Principal, TicketVerifier } from "./module";
+import { MODULE_AUDIENCE_PREFIX, type CreateModuleOptions, type FysioModule, type Principal, type TicketVerifier } from "./module";
 
 const H = RUNTIME.headers;
+
+/**
+ * Who a ticket TO a module is for — the claims the real core puts in a module ticket.
+ * Leave it out for a ticket a module presents to the sandbox core.
+ */
+export interface TicketTarget {
+  organizationId: string;
+  moduleId: string;
+  /** Default "organization". */
+  dataScope?: "organization" | "self" | "none";
+  /** Overrides, for tests that prove a wrong issuer or audience is refused. */
+  issuer?: string;
+  audience?: string;
+}
 
 export interface RecordedCall {
   operation: string;
@@ -33,14 +47,22 @@ export function createSandbox(options: SandboxOptions = {}) {
   /** Every request that reached the sandbox core, accepted or not. */
   const hits: string[] = [];
   let addFieldInResponse = false;
+  const baseUrl = "http://sandbox-core.local";
 
-  const issueTicket = (subject: string) => {
+  const issueTicket = (subject: string, to?: TicketTarget) => {
     const t = `tk_${randomUUID()}`;
-    tickets.set(t, { subject });
+    const claims = to && {
+      iss: to.issuer ?? baseUrl,
+      aud: to.audience ?? MODULE_AUDIENCE_PREFIX + to.moduleId,
+      org: to.organizationId,
+      data_scope: to.dataScope ?? "organization",
+    };
+    tickets.set(t, claims ? { subject, claims } : { subject });
     return t;
   };
   const issueOrganizationTicket = (organizationId: string) => `ot_${organizationId}_${randomUUID()}`;
   const verifier: TicketVerifier = {
+    issuer: baseUrl,
     async verify(ticket) {
       const p = tickets.get(ticket);
       if (!p) throw new Error("unknown ticket");
@@ -88,7 +110,6 @@ export function createSandbox(options: SandboxOptions = {}) {
     });
   }
 
-  const baseUrl = "http://sandbox-core.local";
   const fetchCore = ((input: RequestInfo | URL, init?: RequestInit) => app.fetch(new Request(input, init))) as typeof fetch;
 
   return {
@@ -156,8 +177,9 @@ export async function runSandbox(build: (deps: SandboxDeps) => FysioModule, opti
 
   const base = `http://${options.hostname ?? "localhost"}:${port}`;
   const organization = { [H.organizationId]: organizationId, [H.organizationTicket]: sandbox.issueOrganizationTicket(organizationId) };
-  const user = { [H.ticket]: `Bearer ${sandbox.issueTicket("user:sandkasse-bruger")}`, ...organization };
-  const asCore = { [H.ticket]: `Bearer ${sandbox.issueTicket(RUNTIME.coreSubject)}`, ...organization, "content-type": "application/json" };
+  const to = { organizationId, moduleId: mod.manifest.id };
+  const user = { [H.ticket]: `Bearer ${sandbox.issueTicket("user:sandkasse-bruger", to)}`, ...organization };
+  const asCore = { [H.ticket]: `Bearer ${sandbox.issueTicket(RUNTIME.coreSubject, to)}`, ...organization, "content-type": "application/json" };
   const examples: ExampleCall[] = [
     { title: "Lever modulet?", method: "GET", url: `${base}${MODULE_OPERATIONS.health.path}`, headers: {} },
     { title: "Et kald med billet og klinik", method: "GET", url: `${base}/`, headers: user },

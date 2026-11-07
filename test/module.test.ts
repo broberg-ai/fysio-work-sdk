@@ -3,6 +3,7 @@ import { z } from "zod";
 import { contracts as c, createModule, ModuleStartError, parseStrict, REDACTED, strictBody, strippedKeys } from "../src/index";
 import { buildHello, manifest } from "../examples/hello/module";
 import { createFakeCore, type FakeCore } from "./fake-core";
+import type { TicketTarget } from "../src/sandbox";
 
 const H = c.RUNTIME.headers;
 let core: FakeCore;
@@ -17,9 +18,9 @@ const sink = (l: Record<string, unknown>) => void lines.push(l);
 const hello = (extra: Partial<Parameters<typeof buildHello>[0]> = {}) =>
   buildHello({ tickets: core.verifier, sink, ...extra });
 
-function headers(subject = "user:anna", organizationId = "demo", more: Record<string, string> = {}) {
+function headers(subject = "user:anna", organizationId = "demo", more: Record<string, string> = {}, to: Partial<TicketTarget> = {}) {
   return {
-    [H.ticket]: `Bearer ${core.issueTicket(subject)}`,
+    [H.ticket]: `Bearer ${core.issueTicket(subject, { organizationId, moduleId: "hello", ...to })}`,
     [H.organizationId]: organizationId,
     [H.organizationTicket]: core.issueOrganizationTicket(organizationId),
     "content-type": "application/json",
@@ -102,6 +103,42 @@ describe("ticket check and organization context", () => {
     const res = await hello().app.request("/hello", { headers: { ...h, "x-fysio-clinic-ticket": t! } });
     expect(res.status).toBe(400);
     expect(((await res.json()) as any).error.code).toBe("missing_organization");
+  });
+  test("a ticket for organization A with header B -> 403 organization_mismatch, handler not run (F006.34)", async () => {
+    const mod = hello();
+    const res = await mod.app.request("/notes", {
+      method: "POST",
+      headers: { ...headers("user:anna", "org-a"), [H.organizationId]: "org-b", [H.organizationTicket]: core.issueOrganizationTicket("org-b") },
+      body: JSON.stringify({ text: "hej" }),
+    });
+    expect(res.status).toBe(403);
+    expect(((await res.json()) as any).error.code).toBe("organization_mismatch");
+    const own = await mod.app.request("/notes", { method: "POST", headers: headers("user:anna", "org-b"), body: JSON.stringify({ text: "hej" }) });
+    expect(await own.json()).toEqual({ count: 1 }); // nothing was written to org-b by the forged call
+  });
+  test("a ticket for another module (aud) -> 401 invalid_ticket", async () => {
+    const res = await hello().app.request("/hello", { headers: headers("user:anna", "demo", {}, { moduleId: "notes" }) });
+    expect(res.status).toBe(401);
+    expect(((await res.json()) as any).error.code).toBe("invalid_ticket");
+    const exact = await hello().app.request("/hello", { headers: headers("user:anna", "demo", {}, { audience: "module:hello-x" }) });
+    expect(exact.status).toBe(401);
+  });
+  test("a ticket from another issuer than core -> 401 invalid_ticket", async () => {
+    const res = await hello().app.request("/hello", { headers: headers("user:anna", "demo", {}, { issuer: "https://evil.example" }) });
+    expect(res.status).toBe(401);
+    expect(((await res.json()) as any).error.code).toBe("invalid_ticket");
+  });
+  test("a ticket without claims (no iss, aud, org) -> 401 invalid_ticket", async () => {
+    const res = await hello().app.request("/hello", { headers: { ...headers(), [H.ticket]: `Bearer ${core.issueTicket("user:anna")}` } });
+    expect(res.status).toBe(401);
+  });
+  test("data_scope none -> 403 no_data_scope; self and organization are let through", async () => {
+    const none = await hello().app.request("/hello", { headers: headers("user:dev", "demo", {}, { dataScope: "none" }) });
+    expect(none.status).toBe(403);
+    expect(((await none.json()) as any).error.code).toBe("no_data_scope");
+    for (const dataScope of ["self", "organization"] as const) {
+      expect((await hello().app.request("/hello", { headers: headers("user:carl", "demo", {}, { dataScope }) })).status).toBe(200);
+    }
   });
   test("valid ticket + organization -> the handler sees principal and organization", async () => {
     const res = await hello().app.request("/hello", { headers: headers("user:anna", "org-b") });

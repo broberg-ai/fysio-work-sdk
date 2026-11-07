@@ -1,7 +1,7 @@
 // @fysio-work/sdk — early access. createModule v0 is built and tested against a FAKE core;
 // core itself does not exist yet (plan F006). Do not run it in production.
 
-export { createModule, strictBody, fail, ModuleStartError } from "./module";
+export { createModule, strictBody, fail, ModuleStartError, MODULE_AUDIENCE_PREFIX } from "./module";
 export type {
   CreateModuleOptions,
   FysioModule,

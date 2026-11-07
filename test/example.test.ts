@@ -27,7 +27,7 @@ test("the example starts, answers health, and refuses calls without a valid fake
   expect((await fetch(`${base}/hello`, { headers: organization })).status).toBe(401);
   expect((await fetch(`${base}/hello`, { headers: { ...organization, [H.ticket]: "Bearer not-issued" } })).status).toBe(401);
 
-  const ok = await fetch(`${base}/hello`, { headers: { ...organization, [H.ticket]: `Bearer ${core.issueTicket("user:anna")}` } });
+  const ok = await fetch(`${base}/hello`, { headers: { ...organization, [H.ticket]: `Bearer ${core.issueTicket("user:anna", { organizationId: "demo", moduleId: "hello" })}` } });
   expect(ok.status).toBe(200);
   expect(await ok.json()).toEqual({ hello: "user:anna", organizationId: "demo" });
 });
