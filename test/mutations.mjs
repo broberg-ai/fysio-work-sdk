@@ -37,6 +37,8 @@ const mutations = [
       'principal = { subject: "anon", claims: { iss: options.tickets.issuer, aud: MODULE_AUDIENCE_PREFIX + manifest.id, org: c.req.header(H.organizationId), data_scope: "organization" } };') },
   { name: "header organization not checked against the ticket's org", file: "src/module.ts",
     mutate: (s) => s.replace("if (claims.org !== organizationId) return", "if (false) return") },
+  { name: "module starts without a ticket issuer", file: "src/module.ts",
+    mutate: (s) => s.replace("if (!options.tickets.issuer) throw", "if (false) throw") },
   { name: "ticket issuer not checked", file: "src/module.ts",
     mutate: (s) => s.replace("claims.iss !== options.tickets.issuer || ", "") },
   { name: "ticket audience not checked", file: "src/module.ts",

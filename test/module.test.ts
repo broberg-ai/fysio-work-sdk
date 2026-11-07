@@ -40,6 +40,19 @@ describe("start: manifest and config", () => {
       new ModuleStartError("Mangler konfiguration: B_KEY"),
     );
   });
+  test("a ticket verifier without an issuer does not start (F006.34 L2)", () => {
+    for (const issuer of ["", undefined]) {
+      expect(() =>
+        createModule({
+          manifest,
+          env: {},
+          tickets: { issuer: issuer as never, verify: core.verifier.verify },
+          log: { sink },
+          gdpr: { exportPatient: async () => ({}), deletePatient: async () => {} },
+        }),
+      ).toThrow(new ModuleStartError("Billet-tjekket mangler core's issuer."));
+    }
+  });
   test("present config is exposed", () => {
     expect(buildModule({ ...manifest, config: { required: ["A_KEY"] } }, { A_KEY: "x" }).config).toEqual({ A_KEY: "x" });
   });

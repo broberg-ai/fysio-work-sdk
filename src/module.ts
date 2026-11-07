@@ -152,6 +152,8 @@ export function createModule(options: CreateModuleOptions): FysioModule {
   const env = options.env ?? process.env;
   const missing = manifest.config.required.filter((k) => !env[k]);
   if (missing.length) throw new ModuleStartError(`Mangler konfiguration: ${missing.join(", ")}`);
+  // An empty issuer would match a ticket that has no `iss` at all.
+  if (!options.tickets.issuer) throw new ModuleStartError("Billet-tjekket mangler core's issuer.");
   const config = Object.freeze(Object.fromEntries(manifest.config.required.map((k) => [k, env[k] as string])));
 
   const log = createLogger(options.log);
