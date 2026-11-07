@@ -1,6 +1,6 @@
 {
   "name": "@fysio-work/sdk",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "fysio.work SDK — the kit every module on the fysio.work clinic platform is built with. Early access: createModule v0 is a preview, tested against a fake core.",
   "type": "module",
   "license": "MIT",
