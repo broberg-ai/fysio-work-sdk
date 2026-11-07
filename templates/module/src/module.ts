@@ -14,7 +14,7 @@ export function buildModule(deps: ModuleDeps) {
   // Kun i hukommelsen, som eksempel. Modulets rigtige data bor i det lager platformen
   // opretter til modulet i EU — det kommer med platformen.
   const notes = new Map<string, { patientId: string; text: string }[]>();
-  const forClinic = (clinicId: string) => notes.get(clinicId) ?? [];
+  const forOrganization = (organizationId: string) => notes.get(organizationId) ?? [];
 
   const mod = createModule({
     manifest,
@@ -25,24 +25,24 @@ export function buildModule(deps: ModuleDeps) {
     log: { fields: ["noteCount"], ...deps.log },
     gdpr: {
       exportPatient: async (patientId, ctx) => ({
-        notes: forClinic(ctx.clinic.id).filter((n) => n.patientId === patientId).map((n) => n.text),
+        notes: forOrganization(ctx.organization.id).filter((n) => n.patientId === patientId).map((n) => n.text),
       }),
       deletePatient: async (patientId, ctx) => {
-        notes.set(ctx.clinic.id, forClinic(ctx.clinic.id).filter((n) => n.patientId !== patientId));
+        notes.set(ctx.organization.id, forOrganization(ctx.organization.id).filter((n) => n.patientId !== patientId));
       },
     },
   });
 
-  mod.app.get("/", (c) => c.json({ hej: c.var.principal.subject, klinik: c.var.clinic.id }));
+  mod.app.get("/", (c) => c.json({ hej: c.var.principal.subject, organizationId: c.var.organization.id }));
 
-  mod.app.get("/notes", (c) => c.json({ notes: forClinic(c.var.clinic.id) }));
+  mod.app.get("/notes", (c) => c.json({ notes: forOrganization(c.var.organization.id) }));
 
   mod.app.post(
     "/notes",
     strictBody(z.object({ patientId: z.string().min(1).max(128), text: z.string().min(1).max(500) })),
     async (c) => {
-      const list = [...forClinic(c.var.clinic.id), c.var.body];
-      notes.set(c.var.clinic.id, list);
+      const list = [...forOrganization(c.var.organization.id), c.var.body];
+      notes.set(c.var.organization.id, list);
       await c.var.core?.appendAuditEntry({ action: "note.created", outcome: "confirmed" });
       c.var.log.info("note.created", { noteCount: list.length });
       return c.json({ count: list.length }, 201);

@@ -22,12 +22,12 @@ export function buildHello(deps: Pick<CreateModuleOptions, "tickets" | "core" | 
     },
   });
 
-  mod.app.get("/hello", (c) => c.json({ hello: c.var.principal.subject, clinicId: c.var.clinic.id }));
+  mod.app.get("/hello", (c) => c.json({ hello: c.var.principal.subject, organizationId: c.var.organization.id }));
 
   mod.app.post("/notes", strictBody(z.object({ text: z.string().min(1).max(500) })), async (c) => {
-    const list = notes.get(c.var.clinic.id) ?? [];
+    const list = notes.get(c.var.organization.id) ?? [];
     list.push(c.var.body.text);
-    notes.set(c.var.clinic.id, list);
+    notes.set(c.var.organization.id, list);
     await c.var.core?.appendAuditEntry({ action: "note.created", outcome: "confirmed" });
     c.var.log.info("note.created", { noteCount: list.length });
     return c.json({ count: list.length }, 201);

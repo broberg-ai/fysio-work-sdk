@@ -11,7 +11,7 @@ export type {
   RequestContext,
   StartOptions,
   TicketVerifier,
-  ClinicContext,
+  OrganizationContext,
 } from "./module";
 export { createCoreClient, type CoreClient } from "./generated/core-client";
 export { CoreError, type CallContext, type CoreClientOptions } from "./core-call";

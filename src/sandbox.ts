@@ -16,8 +16,8 @@ const H = RUNTIME.headers;
 export interface RecordedCall {
   operation: string;
   ticketSubject: string;
-  clinicId: string | undefined;
-  clinicTicket: string | undefined;
+  organizationId: string | undefined;
+  organizationTicket: string | undefined;
   traceId: string | undefined;
   body: unknown;
 }
@@ -39,7 +39,7 @@ export function createSandbox(options: SandboxOptions = {}) {
     tickets.set(t, { subject });
     return t;
   };
-  const issueClinicTicket = (clinicId: string) => `ct_${clinicId}_${randomUUID()}`;
+  const issueOrganizationTicket = (organizationId: string) => `ot_${organizationId}_${randomUUID()}`;
   const verifier: TicketVerifier = {
     async verify(ticket) {
       const p = tickets.get(ticket);
@@ -76,8 +76,8 @@ export function createSandbox(options: SandboxOptions = {}) {
       const call: RecordedCall = {
         operation: name,
         ticketSubject: principal.subject,
-        clinicId: ctx.req.header(H.organizationId),
-        clinicTicket: ctx.req.header(H.clinicTicket),
+        organizationId: ctx.req.header(H.organizationId),
+        organizationTicket: ctx.req.header(H.organizationTicket),
         traceId: ctx.req.header(H.traceId),
         body: r.value,
       };
@@ -99,7 +99,7 @@ export function createSandbox(options: SandboxOptions = {}) {
     calls,
     hits,
     issueTicket,
-    issueClinicTicket,
+    issueOrganizationTicket,
     revoke: (ticket: string) => tickets.delete(ticket),
     setAddFieldInResponse: (on: boolean) => {
       addFieldInResponse = on;
@@ -131,7 +131,7 @@ export interface RunSandboxOptions {
   /** Port for the module (default PORT or RUNTIME.defaultPort; 0 = any free port). */
   port?: number;
   hostname?: string;
-  clinicId?: string;
+  organizationId?: string;
   /** Where the welcome text goes (default console.log). */
   print?: (text: string) => void;
   /** Stop on SIGTERM / Ctrl-C (default true). */
@@ -140,14 +140,14 @@ export interface RunSandboxOptions {
 
 /**
  * Start your module against the sandbox, in one process, and print ready-made calls with a
- * ticket and clinic context. This is what `npm run dev` in a new module runs.
+ * ticket and organization context. This is what `npm run dev` in a new module runs.
  */
 export async function runSandbox(build: (deps: SandboxDeps) => FysioModule, options: RunSandboxOptions = {}) {
   const print = options.print ?? ((t: string) => console.log(t));
-  const clinicId = options.clinicId ?? "sandkasse-klinik";
+  const organizationId = options.organizationId ?? "sandkasse-klinik";
   let mod: FysioModule | undefined;
   const sandbox = createSandbox({
-    onCall: (call) => print(`sandkasse-core: ${call.operation} fra ${call.ticketSubject} (klinik ${call.clinicId})`),
+    onCall: (call) => print(`sandkasse-core: ${call.operation} fra ${call.ticketSubject} (klinik ${call.organizationId})`),
   });
   mod = build({ tickets: sandbox.verifier, core: sandbox.coreFor(() => mod!.manifest.id), env: process.env });
   const handleSignals = options.handleSignals !== false;
@@ -155,13 +155,13 @@ export async function runSandbox(build: (deps: SandboxDeps) => FysioModule, opti
   if (handleSignals) process.once("SIGINT", () => void mod!.stop().then(() => process.exit(0)));
 
   const base = `http://${options.hostname ?? "localhost"}:${port}`;
-  const clinic = { [H.organizationId]: clinicId, [H.clinicTicket]: sandbox.issueClinicTicket(clinicId) };
-  const user = { [H.ticket]: `Bearer ${sandbox.issueTicket("user:sandkasse-bruger")}`, ...clinic };
-  const asCore = { [H.ticket]: `Bearer ${sandbox.issueTicket(RUNTIME.coreSubject)}`, ...clinic, "content-type": "application/json" };
+  const organization = { [H.organizationId]: organizationId, [H.organizationTicket]: sandbox.issueOrganizationTicket(organizationId) };
+  const user = { [H.ticket]: `Bearer ${sandbox.issueTicket("user:sandkasse-bruger")}`, ...organization };
+  const asCore = { [H.ticket]: `Bearer ${sandbox.issueTicket(RUNTIME.coreSubject)}`, ...organization, "content-type": "application/json" };
   const examples: ExampleCall[] = [
     { title: "Lever modulet?", method: "GET", url: `${base}${MODULE_OPERATIONS.health.path}`, headers: {} },
     { title: "Et kald med billet og klinik", method: "GET", url: `${base}/`, headers: user },
-    { title: "Uden billet afvises kaldet (401)", method: "GET", url: `${base}/`, headers: clinic },
+    { title: "Uden billet afvises kaldet (401)", method: "GET", url: `${base}/`, headers: organization },
     {
       title: "Platformen beder om en patients data (GDPR-eksport)",
       method: "POST",

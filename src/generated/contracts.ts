@@ -9,7 +9,7 @@ export const RUNTIME = {
   "headers": {
     "ticket": "authorization",
     "organizationId": "x-fysio-organization-id",
-    "clinicTicket": "x-fysio-clinic-ticket",
+    "organizationTicket": "x-fysio-organization-ticket",
     "traceId": "x-fysio-trace-id"
   },
   "coreSubject": "svc:fysio-work-core",
@@ -17,7 +17,7 @@ export const RUNTIME = {
   "shutdownGraceSeconds": 30,
   "alwaysLoggableFields": [
     "traceId",
-    "clinicId",
+    "organizationId",
     "method",
     "route",
     "status",
@@ -198,7 +198,7 @@ export type UploadUrlRequest = z.infer<typeof UploadUrlRequestStrict>;
 export const EventEnvelopeStrict = z.strictObject({
   "id": z.string(),
   "type": z.string().regex(new RegExp("^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-.]*$")),
-  "clinicId": z.string(),
+  "organizationId": z.string(),
   "occurredAt": z.iso.datetime(),
   "traceId": z.string(),
   "data": z.record(z.string(), z.unknown()),
@@ -206,7 +206,7 @@ export const EventEnvelopeStrict = z.strictObject({
 export const EventEnvelopeTolerant = z.object({
   "id": z.string(),
   "type": z.string().regex(new RegExp("^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-.]*$")),
-  "clinicId": z.string(),
+  "organizationId": z.string(),
   "occurredAt": z.iso.datetime(),
   "traceId": z.string(),
   "data": z.record(z.string(), z.unknown()),

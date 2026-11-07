@@ -14,7 +14,7 @@ const MODULE_ID = /^[a-z][a-z0-9-]{1,38}[a-z0-9]$/;
 export interface InitOptions {
   /** Module id (default: the folder name). */
   id?: string;
-  /** Module name shown in the clinic (default: the id). */
+  /** Module name shown in the app (default: the id). */
   name?: string;
 }
 

@@ -19,8 +19,8 @@ Claude Code, Codex, Lovable, broberg.ai, Henosia og alle andre værktøjer der s
    anden persondata i logs.
 5. **GDPR:** `exportPatient` skal returnere alt modulet har om patienten i klinikken, og
    `deletePatient` skal slette det. Platformen kalder dem; testen i `test/` beviser dem.
-6. **Klinikken kommer fra platformen** (`c.var.clinic.id`) — aldrig fra en værdi i kaldet.
-   Gem og læs altid data pr. klinik.
+6. **Organisationen kommer fra platformen** (`c.var.organization.id`) — aldrig fra en værdi i kaldet.
+   Gem og læs altid data pr. organisation.
 7. **Manifestet** (`fysio-work.manifest.json`) skal passe til hvad modulet gør: rettigheder,
    tabeller med patientdata og hvilke værter modulet må kalde ud til.
 

@@ -22,6 +22,8 @@ const mutations = [
     mutate: (s) => s.replace("if (typeof permission !== \"string\" || !new RegExp(permissionPattern).test(permission))", "if (false)") },
   { name: "permission not generated into CORE_OPERATIONS", file: "scripts/generate.mjs", regenerate: true,
     mutate: (s) => s.replace("${o.permission ? `, permission: ${JSON.stringify(o.permission)}` : \"\"}", "") },
+  { name: "spec says clinic again", file: "spec/module.openapi.json", regenerate: true,
+    mutate: (s) => s.replace("one patient in one organization (§3.10).", "one patient in one clinic (§3.10).") },
   // core client
   { name: "client does not check the request before sending", file: "src/core-call.ts",
     mutate: (s) => s.replace("const payload = requestSchema.parse(body);", "const payload = body;") },
@@ -32,8 +34,8 @@ const mutations = [
     mutate: (s) => s.replace('if (!bearer) return fail(c, 401, "missing_ticket"', 'if (false) return fail(c, 401, "missing_ticket"') },
   { name: "ticket verifier failure ignored", file: "src/module.ts",
     mutate: (s) => s.replace('return fail(c, 401, "invalid_ticket", "Billetten er ugyldig eller udløbet.");', 'principal = { subject: "anon" };') },
-  { name: "clinic context not required", file: "src/module.ts",
-    mutate: (s) => s.replace("if (!clinicId || !clinicTicket) return", "if (false) return") },
+  { name: "organization context not required", file: "src/module.ts",
+    mutate: (s) => s.replace("if (!organizationId || !organizationTicket) return", "if (false) return") },
   { name: "trace id not echoed", file: "src/module.ts",
     mutate: (s) => s.replace("c.header(H.traceId, traceId);", "") },
   { name: "GDPR endpoints open to any ticket", file: "src/module.ts",
@@ -84,7 +86,7 @@ const mutations = [
   { name: "runSandbox does not wire the module to the sandbox core", file: "src/sandbox.ts",
     mutate: (s) => s.replace("core: sandbox.coreFor(() => mod!.manifest.id),", "core: undefined,") },
   { name: "template deletePatient deletes nothing", file: "templates/module/src/module.ts",
-    mutate: (s) => s.replace("notes.set(ctx.clinic.id, forClinic(ctx.clinic.id).filter((n) => n.patientId !== patientId));", "") },
+    mutate: (s) => s.replace("notes.set(ctx.organization.id, forOrganization(ctx.organization.id).filter((n) => n.patientId !== patientId));", "") },
 ];
 
 let survived = 0;

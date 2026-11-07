@@ -6,9 +6,9 @@ import { RUNTIME } from "./generated/contracts";
 export interface CallContext {
   /** Ticket presented to core. Which ticket (user vs. service, path a/b) is OPEN decision #1. */
   ticket: string;
-  clinicId: string;
-  /** Signed clinic ticket from core (§3.6 A). Opaque to the SDK; Postgres verifies it. */
-  clinicTicket: string;
+  organizationId: string;
+  /** Signed organization ticket from core (§3.6 A). Opaque to the SDK; Postgres verifies it. */
+  organizationTicket: string;
   traceId: string;
 }
 
@@ -34,8 +34,8 @@ export function contextHeaders(ctx: CallContext): Record<string, string> {
   const h = RUNTIME.headers;
   return {
     [h.ticket]: `Bearer ${ctx.ticket}`,
-    [h.organizationId]: ctx.clinicId,
-    [h.clinicTicket]: ctx.clinicTicket,
+    [h.organizationId]: ctx.organizationId,
+    [h.organizationTicket]: ctx.organizationTicket,
     [h.traceId]: ctx.traceId,
   };
 }

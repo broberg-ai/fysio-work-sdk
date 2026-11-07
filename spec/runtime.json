@@ -4,7 +4,7 @@
   "headers": {
     "ticket": "authorization",
     "organizationId": "x-fysio-organization-id",
-    "clinicTicket": "x-fysio-clinic-ticket",
+    "organizationTicket": "x-fysio-organization-ticket",
     "traceId": "x-fysio-trace-id"
   },
   "coreSubject": "svc:fysio-work-core",
@@ -12,7 +12,7 @@
   "shutdownGraceSeconds": 30,
   "alwaysLoggableFields": [
     "traceId",
-    "clinicId",
+    "organizationId",
     "method",
     "route",
     "status",

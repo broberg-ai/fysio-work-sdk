@@ -19,7 +19,7 @@
     "/_fysio/gdpr/export": {
       "post": {
         "operationId": "exportPatient",
-        "description": "Core asks for everything the module holds about one patient in one clinic (§3.10).",
+        "description": "Core asks for everything the module holds about one patient in one organization (§3.10).",
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PatientRef" } } } },
         "responses": {
           "200": { "description": "export", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PatientExport" } } } }
@@ -29,7 +29,7 @@
     "/_fysio/gdpr/delete": {
       "post": {
         "operationId": "deletePatient",
-        "description": "Core asks the module to delete what it holds about one patient in one clinic (§3.10).",
+        "description": "Core asks the module to delete what it holds about one patient in one organization (§3.10).",
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PatientRef" } } } },
         "responses": {
           "200": { "description": "deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PatientDeleted" } } } }

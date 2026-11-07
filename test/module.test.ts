@@ -17,11 +17,11 @@ const sink = (l: Record<string, unknown>) => void lines.push(l);
 const hello = (extra: Partial<Parameters<typeof buildHello>[0]> = {}) =>
   buildHello({ tickets: core.verifier, sink, ...extra });
 
-function headers(subject = "user:anna", clinicId = "demo", more: Record<string, string> = {}) {
+function headers(subject = "user:anna", organizationId = "demo", more: Record<string, string> = {}) {
   return {
     [H.ticket]: `Bearer ${core.issueTicket(subject)}`,
-    [H.organizationId]: clinicId,
-    [H.clinicTicket]: core.issueClinicTicket(clinicId),
+    [H.organizationId]: organizationId,
+    [H.organizationTicket]: core.issueOrganizationTicket(organizationId),
     "content-type": "application/json",
     ...more,
   };
@@ -69,7 +69,7 @@ describe("health and trace id", () => {
   });
 });
 
-describe("ticket check and clinic context", () => {
+describe("ticket check and organization context", () => {
   test("no ticket -> 401 missing_ticket", async () => {
     const res = await hello().app.request("/hello");
     expect(res.status).toBe(401);
@@ -83,23 +83,30 @@ describe("ticket check and clinic context", () => {
   test("an unknown route is also behind the ticket check", async () => {
     expect((await hello().app.request("/nope")).status).toBe(401);
   });
-  test("valid ticket but no clinic -> 400 missing_clinic", async () => {
+  test("valid ticket but no organization -> 400 missing_organization", async () => {
     const { [H.organizationId]: _drop, ...h } = headers();
     const res = await hello().app.request("/hello", { headers: h });
     expect(res.status).toBe(400);
-    expect(((await res.json()) as any).error.code).toBe("missing_clinic");
+    expect(((await res.json()) as any).error.code).toBe("missing_organization");
   });
   test("the organisation header is x-fysio-organization-id; the old x-fysio-clinic-id is not read", async () => {
     expect(H.organizationId).toBe("x-fysio-organization-id");
     const { [H.organizationId]: id, ...h } = headers();
     const res = await hello().app.request("/hello", { headers: { ...h, "x-fysio-clinic-id": id! } });
     expect(res.status).toBe(400);
-    expect(((await res.json()) as any).error.code).toBe("missing_clinic");
+    expect(((await res.json()) as any).error.code).toBe("missing_organization");
   });
-  test("valid ticket + clinic -> the handler sees principal and clinic", async () => {
-    const res = await hello().app.request("/hello", { headers: headers("user:anna", "clinic-b") });
+  test("the organization ticket header is x-fysio-organization-ticket; the old x-fysio-clinic-ticket is not read", async () => {
+    expect(H.organizationTicket).toBe("x-fysio-organization-ticket");
+    const { [H.organizationTicket]: t, ...h } = headers();
+    const res = await hello().app.request("/hello", { headers: { ...h, "x-fysio-clinic-ticket": t! } });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as any).error.code).toBe("missing_organization");
+  });
+  test("valid ticket + organization -> the handler sees principal and organization", async () => {
+    const res = await hello().app.request("/hello", { headers: headers("user:anna", "org-b") });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ hello: "user:anna", clinicId: "clinic-b" });
+    expect(await res.json()).toEqual({ hello: "user:anna", organizationId: "org-b" });
   });
 });
 
@@ -153,7 +160,7 @@ describe("GDPR endpoints (only core may call)", () => {
 });
 
 describe("calls to core carry the request's context", () => {
-  test("trace id, clinic and clinic ticket are forwarded; the ticket comes from ticketFor", async () => {
+  test("trace id, organization and organization ticket are forwarded; the ticket comes from ticketFor", async () => {
     const svc = core.issueTicket("svc:hello");
     const mod = hello({ core: { baseUrl: core.baseUrl, fetch: core.fetch, ticketFor: () => svc } });
     const h = headers("user:anna", "demo", { [H.traceId]: "trace-abcdef12" });
@@ -163,8 +170,8 @@ describe("calls to core carry the request's context", () => {
       {
         operation: "appendAuditEntry",
         ticketSubject: "svc:hello",
-        clinicId: "demo",
-        clinicTicket: h[H.clinicTicket],
+        organizationId: "demo",
+        organizationTicket: h[H.organizationTicket],
         traceId: "trace-abcdef12",
         body: { action: "note.created", outcome: "confirmed" },
       },
@@ -173,10 +180,10 @@ describe("calls to core carry the request's context", () => {
 });
 
 describe("allowlist logging", () => {
-  test("each request logs route, status, duration, trace and clinic", async () => {
+  test("each request logs route, status, duration, trace and organization", async () => {
     await hello().app.request("/hello", { headers: headers("user:anna", "demo", { [H.traceId]: "trace-abcdef12" }) });
     const done = lines.find((l) => l.event === "request.done")!;
-    expect(done).toMatchObject({ level: "info", method: "GET", route: "/hello", status: 200, traceId: "trace-abcdef12", clinicId: "demo" });
+    expect(done).toMatchObject({ level: "info", method: "GET", route: "/hello", status: 200, traceId: "trace-abcdef12", organizationId: "demo" });
     expect(typeof done.durationMs).toBe("number");
   });
   test("fields not on the allowlist are dropped, not written", async () => {

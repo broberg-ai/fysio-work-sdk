@@ -32,8 +32,8 @@ export interface TicketVerifier {
   verify(ticket: string): Promise<Principal>;
 }
 
-/** Clinic for this call. `ticket` is core's signed clinic ticket (§3.6 A) — opaque here. */
-export interface ClinicContext {
+/** Organization for this call. `ticket` is core's signed organization ticket (§3.6 A) — opaque here. */
+export interface OrganizationContext {
   id: string;
   ticket: string;
 }
@@ -41,7 +41,7 @@ export interface ClinicContext {
 export interface RequestContext {
   traceId: string;
   principal: Principal;
-  clinic: ClinicContext;
+  organization: OrganizationContext;
   log: Logger;
   core: CoreClient | undefined;
 }
@@ -52,7 +52,7 @@ export type ModuleEnv = {
     log: Logger;
     principal: Principal;
     ticket: string;
-    clinic: ClinicContext;
+    organization: OrganizationContext;
     core: CoreClient | undefined;
   };
 };
@@ -72,7 +72,7 @@ export interface CreateModuleOptions {
   core?: {
     baseUrl: string;
     /** The ticket to present to core for this call. Which one is OPEN decision #1. */
-    ticketFor(call: { principal: Principal; ticket: string; clinic: ClinicContext }): string | Promise<string>;
+    ticketFor(call: { principal: Principal; ticket: string; organization: OrganizationContext }): string | Promise<string>;
     fetch?: typeof fetch;
   };
   /** Override of RUNTIME.shutdownGraceSeconds — for tests. */
@@ -90,7 +90,7 @@ export interface FysioModule {
   readonly manifest: Manifest;
   /** Validated values of manifest.config.required. */
   readonly config: Readonly<Record<string, string>>;
-  /** Add your routes here. Every route you add is behind the ticket and clinic checks. */
+  /** Add your routes here. Every route you add is behind the ticket and organization checks. */
   readonly app: Hono<ModuleEnv>;
   readonly log: Logger;
   readonly draining: boolean;
@@ -185,7 +185,7 @@ export function createModule(options: CreateModuleOptions): FysioModule {
 
   app.on(MODULE_OPERATIONS.health.method, MODULE_OPERATIONS.health.path, (c) => c.json({ status: "ok" as const }));
 
-  // Billet-tjek + klinik-kontekst: everything registered after this line requires both.
+  // Billet-tjek + organisations-kontekst: everything registered after this line requires both.
   app.use("*", async (c, next) => {
     const bearer = /^Bearer (\S+)$/.exec(c.req.header(H.ticket) ?? "");
     if (!bearer) return fail(c, 401, "missing_ticket", "Kaldet mangler en billet.");
@@ -195,14 +195,14 @@ export function createModule(options: CreateModuleOptions): FysioModule {
     } catch {
       return fail(c, 401, "invalid_ticket", "Billetten er ugyldig eller udløbet.");
     }
-    const clinicId = c.req.header(H.organizationId);
-    const clinicTicket = c.req.header(H.clinicTicket);
-    if (!clinicId || !clinicTicket) return fail(c, 400, "missing_clinic", "Kaldet mangler klinik-kontekst.");
-    const clinic = { id: clinicId, ticket: clinicTicket };
+    const organizationId = c.req.header(H.organizationId);
+    const organizationTicket = c.req.header(H.organizationTicket);
+    if (!organizationId || !organizationTicket) return fail(c, 400, "missing_organization", "Kaldet mangler organisations-kontekst.");
+    const organization = { id: organizationId, ticket: organizationTicket };
     c.set("principal", principal);
     c.set("ticket", bearer[1]);
-    c.set("clinic", clinic);
-    c.set("log", c.var.log.child({ clinicId }));
+    c.set("organization", organization);
+    c.set("log", c.var.log.child({ organizationId }));
     const core = options.core;
     c.set(
       "core",
@@ -211,9 +211,9 @@ export function createModule(options: CreateModuleOptions): FysioModule {
           baseUrl: core.baseUrl,
           fetch: core.fetch,
           context: async () => ({
-            ticket: await core.ticketFor({ principal, ticket: bearer[1], clinic }),
-            clinicId,
-            clinicTicket,
+            ticket: await core.ticketFor({ principal, ticket: bearer[1], organization }),
+            organizationId,
+            organizationTicket,
             traceId: c.var.traceId,
           }),
         }),
@@ -228,7 +228,7 @@ export function createModule(options: CreateModuleOptions): FysioModule {
   const ctxOf = (c: { var: ModuleEnv["Variables"] }): RequestContext => ({
     traceId: c.var.traceId,
     principal: c.var.principal,
-    clinic: c.var.clinic,
+    organization: c.var.organization,
     log: c.var.log,
     core: c.var.core,
   });

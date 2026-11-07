@@ -3,7 +3,7 @@
   "info": {
     "title": "fysio.work events",
     "version": "0.1.0",
-    "description": "DRAFT v0. Only the envelope is fixed here; each event type's data schema is added when the module that emits it is built. Core builds the envelope — id, clinic and time are never set by a module."
+    "description": "DRAFT v0. Only the envelope is fixed here; each event type's data schema is added when the module that emits it is built. Core builds the envelope — id, organization and time are never set by a module."
   },
   "channels": {
     "events": {
@@ -18,11 +18,11 @@
     "schemas": {
       "EventEnvelope": {
         "type": "object",
-        "required": ["id", "type", "clinicId", "occurredAt", "traceId", "data"],
+        "required": ["id", "type", "organizationId", "occurredAt", "traceId", "data"],
         "properties": {
           "id": { "type": "string" },
           "type": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-.]*$" },
-          "clinicId": { "type": "string" },
+          "organizationId": { "type": "string" },
           "occurredAt": { "type": "string", "format": "date-time" },
           "traceId": { "type": "string" },
           "data": { "type": "object", "additionalProperties": true }

@@ -51,15 +51,15 @@ mod.app.post("/notes", strictBody(z.object({ text: z.string() })), async (c) => 
 await mod.start(); // SIGTERM: stop new calls, finish the rest within 30 s, close
 ```
 
-`createModule` sets up: ticket check, clinic context, trace id, allowlist logging (CPR filter as last guard), `/health`, the GDPR endpoints core calls, a readable Danish error on failure, and graceful shutdown.
+`createModule` sets up: ticket check, organization context, trace id, allowlist logging (CPR filter as last guard), `/health`, the GDPR endpoints core calls, a readable Danish error on failure, and graceful shutdown.
 
-**It is developer help, not a security boundary.** Everything here runs inside the module's container. Clinic isolation, the audit log and outbound network control are enforced by core, Postgres and the network.
+**It is developer help, not a security boundary.** Everything here runs inside the module's container. Organization isolation, the audit log and outbound network control are enforced by core, Postgres and the network.
 
 ## Not in v0 (waits on platform decisions)
 
 - The ticket bridge between the shell and a module backend, and which ticket a module presents to core (open decisions #1 and #3). `tickets` and `core.ticketFor` are injected until then.
 - A real ticket verifier against BID's JWKS.
-- Error reporting, per-clinic limits, signed migrations.
+- Error reporting, per-organization limits, signed migrations.
 
 ## Develop
 

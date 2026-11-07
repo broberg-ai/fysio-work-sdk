@@ -3,7 +3,7 @@
   "info": {
     "title": "fysio.work core API (what a module calls on core)",
     "version": "0.1.0",
-    "description": "DRAFT v0 — core does not exist yet (F006.3, F006.4, F006.6 build it and may change these shapes). Request bodies are strict (unknown field -> 400, never stripped), response bodies tolerant (a new field never breaks an older client). Every call carries the headers in runtime.json: ticket, clinic id, clinic ticket, trace id. x-fysio-permission on each operation is the right the call needs (form: the manifest permission pattern); core refuses to start if an operation lacks one."
+    "description": "DRAFT v0 — core does not exist yet (F006.3, F006.4, F006.6 build it and may change these shapes). Request bodies are strict (unknown field -> 400, never stripped), response bodies tolerant (a new field never breaks an older client). Every call carries the headers in runtime.json: ticket, organization id, organization ticket, trace id. x-fysio-permission on each operation is the right the call needs (form: the manifest permission pattern); core refuses to start if an operation lacks one."
   },
   "paths": {
     "/v1/audit/entries": {
@@ -21,7 +21,7 @@
       "post": {
         "operationId": "createUploadUrl",
         "x-fysio-permission": "files:write",
-        "description": "A short-lived, clinic-scoped presigned URL for one file (§3.6). The module never holds storage keys.",
+        "description": "A short-lived, organization-scoped presigned URL for one file (§3.6). The module never holds storage keys.",
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UploadUrlRequest" } } } },
         "responses": {
           "201": { "description": "issued", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UploadUrl" } } } }
@@ -32,7 +32,7 @@
       "post": {
         "operationId": "publishEvent",
         "x-fysio-permission": "events:publish",
-        "description": "Publish a domain event. Core builds the envelope (events.asyncapi.json) — the module never sets clinic, time or id itself.",
+        "description": "Publish a domain event. Core builds the envelope (events.asyncapi.json) — the module never sets organization, time or id itself.",
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EventPublishRequest" } } } },
         "responses": {
           "202": { "description": "accepted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EventAccepted" } } } }

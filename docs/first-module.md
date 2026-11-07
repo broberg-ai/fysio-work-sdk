@@ -49,7 +49,7 @@ Sandkassen udskriver færdige `curl`-kald med en billet og en klinik, fx:
 
 ```text
 # Et kald med billet og klinik
-curl -i -H 'authorization: Bearer tk_…' -H 'x-fysio-organization-id: sandkasse-klinik' -H 'x-fysio-clinic-ticket: ct_…' 'http://localhost:8080/'
+curl -i -H 'authorization: Bearer tk_…' -H 'x-fysio-organization-id: sandkasse-klinik' -H 'x-fysio-organization-ticket: ot_…' 'http://localhost:8080/'
 ```
 
 Kopiér dem ind i en anden terminal. Med billet svarer modulet 200, uden billet 401. Når dit
@@ -61,7 +61,7 @@ modul kalder platformen (fx revisionsloggen), skriver sandkassen det i terminale
 
 ```ts
 mod.app.post("/noter", strictBody(z.object({ patientId: z.string(), tekst: z.string().max(500) })), async (c) => {
-  // c.var.clinic.id — klinikken, sat af platformen. Gem altid pr. klinik.
+  // c.var.organization.id — organisationen, sat af platformen. Gem altid pr. organisation.
   // c.var.body      — det validerede input. Et ukendt felt er allerede afvist med 400.
   c.var.log.info("note.oprettet", {});
   return c.json({ ok: true }, 201);

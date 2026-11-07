@@ -4,12 +4,12 @@ import { createFakeCore, type FakeCore } from "./fake-core";
 
 let core: FakeCore;
 let ticket: string;
-const clinicTicket = "ct_demo";
+const organizationTicket = "ot_demo";
 const client = () =>
   createCoreClient({
     baseUrl: core.baseUrl,
     fetch: core.fetch,
-    context: () => ({ ticket, clinicId: "demo", clinicTicket, traceId: "trace-12345678" }),
+    context: () => ({ ticket, organizationId: "demo", organizationTicket, traceId: "trace-12345678" }),
   });
 
 beforeEach(() => {
@@ -18,15 +18,15 @@ beforeEach(() => {
 });
 
 describe("generated core client against the fake core", () => {
-  test("sends ticket, clinic, clinic ticket and trace id; returns the parsed response", async () => {
+  test("sends ticket, organization, organization ticket and trace id; returns the parsed response", async () => {
     const r = await client().appendAuditEntry({ action: "note.created", outcome: "confirmed" });
     expect(typeof r.entryId).toBe("string");
     expect(core.calls).toEqual([
       {
         operation: "appendAuditEntry",
         ticketSubject: "svc:hello",
-        clinicId: "demo",
-        clinicTicket,
+        organizationId: "demo",
+        organizationTicket,
         traceId: "trace-12345678",
         body: { action: "note.created", outcome: "confirmed" },
       },
