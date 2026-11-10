@@ -74,24 +74,16 @@ describe("init", () => {
     expect(printed[0]).toContain(`-H 'authorization: ${dev.user.authorization}'`);
   });
 
-  test("a module with an external database, made from the template, is refused", () => {
+  test("a module that uses Supabase (import + package.json) has no findings (Christian 10/11, D-cf63a6)", () => {
     const dir = join(tmp(), "klinik-noter");
     initModule(dir);
-    const p = join(dir, "src/module.ts");
-    writeFileSync(p, `import { createClient } from "@supabase/supabase-js";\n${readFileSync(p, "utf8")}`);
-    expect(checkModuleDir(dir).map((f) => f.rule)).toEqual(["external-database"]);
-  });
-
-  test("an external database added to the module's package.json is refused", () => {
-    const dir = join(tmp(), "klinik-noter");
-    initModule(dir);
+    const src = join(dir, "src/module.ts");
+    writeFileSync(src, `import { createClient } from "@supabase/supabase-js";\nconst url = "https://abcd1234.supabase.co";\n${readFileSync(src, "utf8")}`);
     const p = join(dir, "package.json");
     const pkg = JSON.parse(readFileSync(p, "utf8"));
     pkg.dependencies["@supabase/supabase-js"] = "^2.0.0";
     writeFileSync(p, JSON.stringify(pkg, null, 2));
-    expect(checkModuleDir(dir)).toEqual([
-      { rule: "external-database", file: "package.json", line: expect.any(Number), message: expect.stringContaining("@supabase/supabase-js") },
-    ]);
+    expect(checkModuleDir(dir)).toEqual([]);
   });
 
   test("refuses a folder that is not empty, and an id the platform cannot use", () => {

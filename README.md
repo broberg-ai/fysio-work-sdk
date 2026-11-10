@@ -23,7 +23,7 @@ Step by step, in Danish: [docs/first-module.md](docs/first-module.md). Every ste
 | Generated TS (Zod schemas + core client) | `src/generated/` — never edit by hand; `npm run generate` |
 | `createModule` v0 on Hono | `src/module.ts` |
 | `fysio-work init <folder>` | a new module from `templates/module/` (manifest, `createModule`, GDPR, tests, CI, `AGENTS.md` for AI coding tools) |
-| `fysio-work check [folder] [--json]` | refuses: own server instead of `createModule` (`own-server`, `no-create-module`), external databases such as Supabase (`external-database`), a missing or invalid `fysio-work.manifest.json` (`manifest-missing`, `manifest-invalid`). Exit code 1 on any finding |
+| `fysio-work check [folder] [--json]` | refuses: own server instead of `createModule` (`own-server`, `no-create-module`), a missing or invalid `fysio-work.manifest.json` (`manifest-missing`, `manifest-invalid`). Exit code 1 on any finding |
 | Local sandbox | `@fysio-work/sdk/sandbox` — a fake core in the same process (`runSandbox`, `createSandbox`). Never part of the module runtime |
 
 Each core operation in `core.openapi.json` names the permission it needs (`x-fysio-permission`, generated into `CORE_OPERATIONS`); the generator refuses an operation without one.

@@ -1,6 +1,7 @@
 // `check` — deterministic rules from plan F006 §3.1, §3.10 and §11 fase 3 trin 4. Developer
 // help, not a security boundary: a module that goes around createModule gets no more access,
-// it just gets none, and external databases are also unreachable from the network (§6.1).
+// it just gets none. Which database a module uses is not checked here (Christian 10/11,
+// D-cf63a6/D-a204f6: own database in the EU is allowed without patient data).
 // Every finding has a rule id; findings that sit in a file also have file and line.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -9,7 +10,6 @@ import { ManifestStrict } from "./generated/contracts";
 export type CheckRule =
   | "own-server"
   | "no-create-module"
-  | "external-database"
   | "manifest-missing"
   | "manifest-invalid";
 
@@ -32,19 +32,9 @@ const OWN_SERVER: [RegExp, string][] = [
   [/export\s+default\s*\{[^}]*\bfetch\b/, "export default { fetch } (Bun auto-serve)"],
 ];
 
-// Hosted databases outside the platform (Christian 5/11, valg A: refused for every module —
-// a module's data lives in the storage core provisions in the EU, so export and delete work).
-const EXTERNAL_DB_PACKAGE =
-  /^(?:@supabase\/[^/]+|supabase|firebase|firebase-admin|@firebase\/[^/]+|mongodb|mongoose|@planetscale\/database|@neondatabase\/serverless|@libsql\/client|@vercel\/postgres|@upstash\/redis)(?:\/.*)?$/;
-const IMPORT_SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|^\s*import\s+)["']([^"']+)["']/g;
-const EXTERNAL_DB_HOST = /\b[a-z0-9-]+\.(supabase\.co|supabase\.in|firebaseio\.com|mongodb\.net|neon\.tech|turso\.io)\b/;
-
 const CREATE_MODULE = /\bcreateModule\s*\(/;
 const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
-
-const externalDb = (what: string) =>
-  `Modulet bruger en ekstern database (${what}). Modulets data skal bo i platformens lager i EU, så eksport og sletning altid virker.`;
 
 export function checkSources(files: { path: string; content: string }[]): CheckFinding[] {
   const findings: CheckFinding[] = [];
@@ -55,35 +45,10 @@ export function checkSources(files: { path: string; content: string }[]): CheckF
         if (re.test(text))
           findings.push({ rule: "own-server", ...at, message: `Modulet starter sin egen server (${what}). Start det med createModule.` });
       }
-      for (const m of text.matchAll(IMPORT_SPECIFIER)) {
-        if (EXTERNAL_DB_PACKAGE.test(m[1])) findings.push({ rule: "external-database", ...at, message: externalDb(m[1]) });
-      }
-      const host = EXTERNAL_DB_HOST.exec(text);
-      if (host) findings.push({ rule: "external-database", ...at, message: externalDb(host[0]) });
     });
   }
   if (!files.some((f) => CREATE_MODULE.test(f.content)))
     findings.push({ rule: "no-create-module", message: "Modulet kalder ikke createModule." });
-  return findings;
-}
-
-/** package.json: an external database client among the dependencies is refused too. */
-export function checkPackageJson(path: string, content: string): CheckFinding[] {
-  let pkg: Record<string, unknown>;
-  try {
-    pkg = JSON.parse(content);
-  } catch {
-    return [];
-  }
-  const lines = content.split("\n");
-  const findings: CheckFinding[] = [];
-  for (const field of ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]) {
-    for (const name of Object.keys((pkg[field] as Record<string, string> | undefined) ?? {})) {
-      if (!EXTERNAL_DB_PACKAGE.test(name)) continue;
-      const line = lines.findIndex((l) => l.includes(`"${name}"`)) + 1;
-      findings.push({ rule: "external-database", file: path, line: line || 1, message: externalDb(name) });
-    }
-  }
   return findings;
 }
 
@@ -124,8 +89,6 @@ export function checkModuleDir(root: string): CheckFinding[] {
         if (!SKIP_DIRS.has(name)) walk(full);
       } else if (SOURCE.test(name)) {
         files.push({ path: relative(root, full), content: readFileSync(full, "utf8") });
-      } else if (name === "package.json") {
-        findings.push(...checkPackageJson(relative(root, full), readFileSync(full, "utf8")));
       }
     }
   };

@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
 import { checkManifest, checkSources } from "../src/index";
-import { checkPackageJson } from "../src/check";
 
 const withModule = (extra: string) => [
   { path: "src/main.ts", content: `import { createModule } from "@fysio-work/sdk";\nconst m = createModule({});\n${extra}` },
@@ -30,37 +29,10 @@ describe("check: a module starts through createModule, never its own server", ()
   });
 });
 
-describe("check: no external databases (Christian 5/11, valg A)", () => {
-  test.each([
-    ['import { createClient } from "@supabase/supabase-js";'],
-    ['const { createClient } = require("@supabase/supabase-js");'],
-    ['const s = await import("@supabase/supabase-js");'],
-    ['import "@supabase/auth-helpers-nextjs";'],
-    ['import { initializeApp } from "firebase/app";'],
-    ['import admin from "firebase-admin";'],
-    ['import { MongoClient } from "mongodb";'],
-    ['import mongoose from "mongoose";'],
-    ['import { neon } from "@neondatabase/serverless";'],
-    ['import { connect } from "@planetscale/database";'],
-    ['import { createClient } from "@libsql/client";'],
-    ['import { sql } from "@vercel/postgres";'],
-    ['import { Redis } from "@upstash/redis";'],
-    ['const url = "https://abcd1234.supabase.co";'],
-  ])("%s is refused with file and line", (line) => {
-    expect(checkSources(withModule(line))).toEqual([
-      { rule: "external-database", file: "src/main.ts", line: 3, message: expect.stringContaining("platformens lager") },
-    ]);
-  });
-
-  test("a module's own imports and the platform's storage are not refused", () => {
-    expect(checkSources(withModule('import { x } from "./supabase-free";\nimport pg from "pg";'))).toEqual([]);
-  });
-
-  test("an external database in package.json is refused with its line", () => {
-    const pkg = JSON.stringify({ name: "m", dependencies: { hono: "1", "@supabase/supabase-js": "2" } }, null, 2);
-    expect(checkPackageJson("package.json", pkg)).toEqual([
-      { rule: "external-database", file: "package.json", line: 5, message: expect.stringContaining("@supabase/supabase-js") },
-    ]);
+describe("check: the module's database is not checked (Christian 10/11, D-cf63a6)", () => {
+  test("Supabase imports and hosts give no findings", () => {
+    const lines = 'import { createClient } from "@supabase/supabase-js";\nconst url = "https://abcd1234.supabase.co";';
+    expect(checkSources(withModule(lines))).toEqual([]);
   });
 });
 

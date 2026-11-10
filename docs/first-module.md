@@ -35,8 +35,8 @@ Du får:
 npm run check
 ```
 
-`check` afviser et modul der starter sin egen server i stedet for `createModule`, et modul
-der bruger en ekstern database (fx Supabase), og et manifest der ikke er gyldigt. Hvert fund
+`check` afviser et modul der starter sin egen server i stedet for `createModule`, og et
+manifest der ikke er gyldigt. Hvert fund
 har et regel-id, en fil og en linje. `npx fysio-work check --json` giver fundene til CI.
 
 ## 3. Kør modulet mod sandkassen (2 minutter)
