@@ -6,6 +6,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { ManifestStrict } from "./generated/contracts";
+import { widgetProblems } from "./module";
 
 export type CheckRule =
   | "own-server"
@@ -63,7 +64,11 @@ export function checkManifest(path: string, content: string | undefined): CheckF
     return [{ rule: "manifest-invalid", file: path, line: 1, message: `${MANIFEST_FILE} er ikke gyldig JSON.` }];
   }
   const r = ManifestStrict.safeParse(raw);
-  if (r.success) return [];
+  if (r.success) {
+    // F007: what the schema cannot see — duplicate widget ids, a widget permission the module does not hold.
+    const line = content.split("\n").findIndex((l) => l.includes('"widgets"')) + 1;
+    return widgetProblems(r.data).map((message) => ({ rule: "manifest-invalid" as const, file: path, line: line || 1, message: `Manifestet er ugyldigt: ${message}` }));
+  }
   const lines = content.split("\n");
   return r.error.issues.map((issue) => {
     const keys = issue.code === "unrecognized_keys" ? [...issue.path, ...issue.keys] : issue.path;

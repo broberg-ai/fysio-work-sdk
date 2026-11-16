@@ -38,7 +38,7 @@ export const SPEC_VERSIONS = {
 } as const;
 
 // manifest.schema.json · Manifest
-/** Module manifest v1 (plan F006 §3.1, §3.4, §3.6, §6.1). Validated by createModule at start. Version and image digest are NOT here on purpose: they are derived from the signed image (§3.12), never self-reported. */
+/** Module manifest v1 (plan F006 §3.1, §3.4, §3.6, §6.1; widgets F007). Validated by createModule at start. Version and image digest are NOT here on purpose: they are derived from the signed image (§3.12), never self-reported. */
 export const ManifestStrict = z.strictObject({
   "manifestVersion": z.literal(1),
   "id": z.string().regex(new RegExp("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")),
@@ -47,6 +47,15 @@ export const ManifestStrict = z.strictObject({
   "permissions": z.array(z.string().regex(new RegExp("^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$"))),
   "patientDataTables": z.array(z.string().regex(new RegExp("^[a-z_][a-z0-9_]{0,62}$"))),
   "egress": z.array(z.string().regex(new RegExp("^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$"))),
+  "widgets": z.array(z.strictObject({
+  "id": z.string().regex(new RegExp("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")),
+  "title": z.string().min(1).max(60),
+  "description": z.string().max(200).optional(),
+  "kind": z.enum(["stat","list","chart","actions","custom"]),
+  "sizes": z.array(z.enum(["third","half","full"])).min(1).max(3),
+  "permission": z.string().regex(new RegExp("^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$")).optional(),
+  "refreshSeconds": z.number().int().min(30).max(3600).optional(),
+})).max(20).optional(),
   "config": z.strictObject({
   "required": z.array(z.string().regex(new RegExp("^[A-Z][A-Z0-9_]*$"))),
 }),
@@ -59,6 +68,15 @@ export const ManifestTolerant = z.object({
   "permissions": z.array(z.string().regex(new RegExp("^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$"))),
   "patientDataTables": z.array(z.string().regex(new RegExp("^[a-z_][a-z0-9_]{0,62}$"))),
   "egress": z.array(z.string().regex(new RegExp("^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$"))),
+  "widgets": z.array(z.object({
+  "id": z.string().regex(new RegExp("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")),
+  "title": z.string().min(1).max(60),
+  "description": z.string().max(200).optional(),
+  "kind": z.enum(["stat","list","chart","actions","custom"]),
+  "sizes": z.array(z.enum(["third","half","full"])).min(1).max(3),
+  "permission": z.string().regex(new RegExp("^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$")).optional(),
+  "refreshSeconds": z.number().int().min(30).max(3600).optional(),
+})).max(20).optional(),
   "config": z.object({
   "required": z.array(z.string().regex(new RegExp("^[A-Z][A-Z0-9_]*$"))),
 }),
@@ -123,6 +141,39 @@ export const PatientRefTolerant = z.object({
   "patientId": z.string().min(1).max(128),
 });
 export type PatientRef = z.infer<typeof PatientRefStrict>;
+
+// module.openapi.json · WidgetContent
+/** One widget's content. `content` follows `kind`: stat {value, label, note?} · list {rows: [{text, note?, href?}]} · chart {points: [{label, value}]} · actions {buttons: [{label, href}]} · custom {element, props}. */
+export const WidgetContentStrict = z.strictObject({
+  "widgetId": z.string().regex(new RegExp("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")),
+  "kind": z.enum(["stat","list","chart","actions","custom"]),
+  "content": z.record(z.string(), z.unknown()),
+  "actions": z.array(z.strictObject({
+  "label": z.string().min(1).max(40),
+  "href": z.string().regex(new RegExp("^/")),
+})).max(3).optional(),
+});
+export const WidgetContentTolerant = z.object({
+  "widgetId": z.string().regex(new RegExp("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")),
+  "kind": z.enum(["stat","list","chart","actions","custom"]),
+  "content": z.record(z.string(), z.unknown()),
+  "actions": z.array(z.object({
+  "label": z.string().min(1).max(40),
+  "href": z.string().regex(new RegExp("^/")),
+})).max(3).optional(),
+});
+export type WidgetContent = z.infer<typeof WidgetContentStrict>;
+
+// module.openapi.json · WidgetRequest
+export const WidgetRequestStrict = z.strictObject({
+  "widgetId": z.string().regex(new RegExp("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")),
+  "size": z.enum(["third","half","full"]),
+});
+export const WidgetRequestTolerant = z.object({
+  "widgetId": z.string().regex(new RegExp("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")),
+  "size": z.enum(["third","half","full"]),
+});
+export type WidgetRequest = z.infer<typeof WidgetRequestStrict>;
 
 // core.openapi.json · AuditEntryReceipt
 export const AuditEntryReceiptStrict = z.strictObject({
@@ -218,6 +269,7 @@ export const MODULE_OPERATIONS = {
   deletePatient: { method: "POST", path: "/_fysio/gdpr/delete", status: 200 },
   exportPatient: { method: "POST", path: "/_fysio/gdpr/export", status: 200 },
   health: { method: "GET", path: "/health", status: 200 },
+  widgetContent: { method: "POST", path: "/_fysio/widgets", status: 200 },
 } as const;
 
 /** Endpoints core serves (spec/core.openapi.json). */

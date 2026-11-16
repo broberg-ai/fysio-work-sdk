@@ -20,6 +20,13 @@ export function buildHello(deps: Pick<CreateModuleOptions, "tickets" | "core" | 
       exportPatient: async () => ({ notes: [] }),
       deletePatient: async () => {},
     },
+    // F007: one widget per entry in manifest.widgets. It answers for the calling user's organisation only.
+    widgets: {
+      noter: async (_input, ctx) => {
+        const count = notes.get(ctx.organization.id)?.length ?? 0;
+        return { content: { value: count, label: count === 1 ? "note" : "noter" }, actions: [{ label: "Skriv en note", href: "/notes" }] };
+      },
+    },
   });
 
   mod.app.get("/hello", (c) => c.json({ hello: c.var.principal.subject, organizationId: c.var.organization.id }));

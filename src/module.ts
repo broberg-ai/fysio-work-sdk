@@ -11,6 +11,8 @@ import {
   PatientDeletedStrict,
   PatientExportStrict,
   PatientRefStrict,
+  WidgetContentStrict,
+  WidgetRequestStrict,
   RUNTIME,
   type Manifest,
 } from "./generated/contracts";
@@ -71,10 +73,35 @@ export interface GdprHandlers {
   deletePatient(patientId: string, ctx: RequestContext): Promise<void>;
 }
 
+/** What a widget handler returns (F007). `content` follows the widget's kind in the manifest. */
+export interface WidgetResult {
+  content: Record<string, unknown>;
+  actions?: { label: string; href: string }[];
+}
+/** One widget's content for the calling user. The ticket is the user's own, so the handler sees what the user may see. */
+export type WidgetHandler = (input: { size: "third" | "half" | "full" }, ctx: RequestContext) => Promise<WidgetResult>;
+
+/** Problems with the manifest's widgets that the schema cannot express. Shared by createModule and `fysio-work check`. */
+export function widgetProblems(manifest: Manifest): string[] {
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  for (const w of manifest.widgets ?? []) {
+    if (seen.has(w.id)) problems.push(`widget «${w.id}» står der to gange`);
+    seen.add(w.id);
+    if (new Set(w.sizes).size !== w.sizes.length) problems.push(`widget «${w.id}» nævner samme størrelse to gange`);
+    if (w.permission && !manifest.permissions.includes(w.permission)) {
+      problems.push(`widget «${w.id}» kræver ${w.permission}, som ikke står i permissions`);
+    }
+  }
+  return problems;
+}
+
 export interface CreateModuleOptions {
   manifest: unknown;
   tickets: TicketVerifier;
   gdpr: GdprHandlers;
+  /** One handler per widget in manifest.widgets, keyed by widget id (F007). */
+  widgets?: Record<string, WidgetHandler>;
   /** Defaults to process.env. */
   env?: Record<string, string | undefined>;
   log?: LoggerOptions;
@@ -117,7 +144,7 @@ export class ModuleStartError extends Error {
 const H = RUNTIME.headers;
 const TRACE_ID = /^[A-Za-z0-9-]{8,64}$/;
 
-export function fail(c: Context, status: 400 | 401 | 403 | 500 | 503, code: string, message: string, fields?: string[]) {
+export function fail(c: Context, status: 400 | 401 | 403 | 404 | 500 | 503, code: string, message: string, fields?: string[]) {
   const traceId = (c.get("traceId") as string | undefined) ?? "";
   return c.json({ error: { code, message, traceId, ...(fields ? { fields } : {}) } }, status);
 }
@@ -149,11 +176,20 @@ export function createModule(options: CreateModuleOptions): FysioModule {
     throw new ModuleStartError(`Manifestet er ugyldigt: ${where}`);
   }
   const manifest = m.data;
+  // Widgets (F007): the schema cannot see duplicates or a permission the module does not hold.
+  const wp = widgetProblems(manifest);
+  if (wp.length) throw new ModuleStartError(`Manifestet er ugyldigt: ${wp.join("; ")}`);
   const env = options.env ?? process.env;
   const missing = manifest.config.required.filter((k) => !env[k]);
   if (missing.length) throw new ModuleStartError(`Mangler konfiguration: ${missing.join(", ")}`);
   // An empty issuer would match a ticket that has no `iss` at all.
   if (!options.tickets.issuer) throw new ModuleStartError("Billet-tjekket mangler core's issuer.");
+  const handlers = options.widgets ?? {};
+  const declared = new Set((manifest.widgets ?? []).map((w) => w.id));
+  const noHandler = [...declared].filter((id) => !handlers[id]);
+  if (noHandler.length) throw new ModuleStartError(`Mangler handler til widget: ${noHandler.join(", ")}`);
+  const undeclared = Object.keys(handlers).filter((id) => !declared.has(id));
+  if (undeclared.length) throw new ModuleStartError(`Widget står ikke i manifestet: ${undeclared.join(", ")}`);
   const config = Object.freeze(Object.fromEntries(manifest.config.required.map((k) => [k, env[k] as string])));
 
   const log = createLogger(options.log);
@@ -266,6 +302,17 @@ export function createModule(options: CreateModuleOptions): FysioModule {
     await options.gdpr.deletePatient(patientId, ctxOf(c));
     c.var.log.info("gdpr.delete", { operation: "deletePatient" });
     return c.json(PatientDeletedStrict.parse({ patientId, deleted: true }), del.status);
+  });
+
+  // Widgets (F007): core asks on behalf of the user, so the ticket is the user's — no fromCore here.
+  const wc = MODULE_OPERATIONS.widgetContent;
+  app.on(wc.method, wc.path, strictBody(WidgetRequestStrict), async (c) => {
+    const { widgetId, size } = c.var.body;
+    const def = (manifest.widgets ?? []).find((w) => w.id === widgetId);
+    if (!def) return fail(c, 404, "unknown_widget", "Modulet har ingen widget med det id.");
+    if (!def.sizes.includes(size)) return fail(c, 400, "unsupported_size", "Widgetten findes ikke i den størrelse.", ["size"]);
+    const out = await handlers[widgetId](({ size }), ctxOf(c));
+    return c.json(WidgetContentStrict.parse({ widgetId, kind: def.kind, content: out.content, ...(out.actions ? { actions: out.actions } : {}) }), wc.status);
   });
 
   // Fejl: a readable Danish error to the caller; only the error's NAME is logged (no message — it may hold personal data).

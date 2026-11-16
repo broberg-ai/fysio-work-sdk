@@ -22,6 +22,7 @@ describe("@fysio-work/sdk — public surface", () => {
       "strictBody",
       "strippedKeys",
       "welcome",
+      "widgetProblems",
       "z",
     ]);
   });

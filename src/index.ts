@@ -1,7 +1,7 @@
 // @fysio-work/sdk — early access. createModule v0 is built and tested against a FAKE core;
 // core itself does not exist yet (plan F006). Do not run it in production.
 
-export { createModule, strictBody, fail, ModuleStartError, MODULE_AUDIENCE_PREFIX } from "./module";
+export { createModule, strictBody, fail, ModuleStartError, MODULE_AUDIENCE_PREFIX, widgetProblems } from "./module";
 export type {
   CreateModuleOptions,
   FysioModule,
@@ -12,6 +12,8 @@ export type {
   StartOptions,
   TicketVerifier,
   OrganizationContext,
+  WidgetHandler,
+  WidgetResult,
 } from "./module";
 export { createCoreClient, type CoreClient } from "./generated/core-client";
 export { CoreError, type CallContext, type CoreClientOptions } from "./core-call";

@@ -55,6 +55,32 @@ await mod.start(); // SIGTERM: stop new calls, finish the rest within 30 s, clos
 
 **It is developer help, not a security boundary.** Everything here runs inside the module's container. Organization isolation, the audit log and outbound network control are enforced by core, Postgres and the network.
 
+## Widgets (F007)
+
+A module can offer widgets for the clinic's dashboards — Overblik is the main one. Declare them in the
+manifest and answer each with a handler; the platform calls `POST /_fysio/widgets` on behalf of the user,
+with the user's own ticket, so a widget never sees more than the user and the manifest allow.
+
+```jsonc
+"widgets": [
+  { "id": "noter", "title": "Noter", "kind": "stat", "sizes": ["third", "half"], "permission": "notes:write" }
+]
+```
+
+```ts
+createModule({
+  manifest, tickets, gdpr,
+  widgets: {
+    noter: async ({ size }, ctx) => ({ content: { value: 3, label: "noter" }, actions: [{ label: "Skriv en note", href: "/notes" }] }),
+  },
+});
+```
+
+`kind` is `stat`, `list`, `chart`, `actions` (drawn by the platform in the house design) or `custom` (your own
+web component). The module does not start if a declared widget has no handler, a handler has no widget, an id
+is used twice, or a widget's `permission` is not in `permissions`; `fysio-work check` reports the same. An
+unknown widget id answers 404 `unknown_widget`. See `examples/hello`.
+
 ## Not in v0 (waits on platform decisions)
 
 - The ticket bridge between the shell and a module backend, and which ticket a module presents to core (open decisions #1 and #3). `tickets` and `core.ticketFor` are injected until then.

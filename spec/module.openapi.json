@@ -26,6 +26,16 @@
         }
       }
     },
+    "/_fysio/widgets": {
+      "post": {
+        "operationId": "widgetContent",
+        "description": "Core asks for one widget's content on behalf of the user — the ticket is the user's own (F007). A widget id not in the manifest is 404 unknown_widget.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WidgetRequest" } } } },
+        "responses": {
+          "200": { "description": "content", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WidgetContent" } } } }
+        }
+      }
+    },
     "/_fysio/gdpr/delete": {
       "post": {
         "operationId": "deletePatient",
@@ -39,6 +49,37 @@
   },
   "components": {
     "schemas": {
+      "WidgetRequest": {
+        "type": "object",
+        "required": ["widgetId", "size"],
+        "properties": {
+          "widgetId": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,38}[a-z0-9]$" },
+          "size": { "enum": ["third", "half", "full"] }
+        }
+      },
+      "WidgetContent": {
+        "type": "object",
+        "description": "One widget's content. `content` follows `kind`: stat {value, label, note?} · list {rows: [{text, note?, href?}]} · chart {points: [{label, value}]} · actions {buttons: [{label, href}]} · custom {element, props}.",
+        "required": ["widgetId", "kind", "content"],
+        "properties": {
+          "widgetId": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,38}[a-z0-9]$" },
+          "kind": { "enum": ["stat", "list", "chart", "actions", "custom"] },
+          "content": { "type": "object", "additionalProperties": true },
+          "actions": {
+            "type": "array",
+            "maxItems": 3,
+            "description": "Links into the module shown under the widget, relative to the module's own route.",
+            "items": {
+              "type": "object",
+              "required": ["label", "href"],
+              "properties": {
+                "label": { "type": "string", "minLength": 1, "maxLength": 40 },
+                "href": { "type": "string", "pattern": "^/" }
+              }
+            }
+          }
+        }
+      },
       "Health": {
         "type": "object",
         "required": ["status"],

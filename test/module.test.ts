@@ -65,6 +65,8 @@ function buildModule(m: unknown, env: Record<string, string> = {}) {
     tickets: core.verifier,
     log: { sink },
     gdpr: { exportPatient: async () => ({}), deletePatient: async () => {} },
+    // F007: a module must answer every widget it declares — give the declared ones an empty handler.
+    widgets: Object.fromEntries(((m as { widgets?: { id: string }[] }).widgets ?? []).map((w) => [w.id, async () => ({ content: {} })])),
   });
 }
 
