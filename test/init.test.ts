@@ -68,6 +68,13 @@ describe("init", () => {
     });
     expect(res.status).toBe(201);
     expect(dev.sandbox.calls).toEqual([expect.objectContaining({ operation: "appendAuditEntry", ticketSubject: "svc:klinik-noter" })]);
+    // F007: the scaffold ships a widget, and it answers with the organisation's own count.
+    const w = await fetch(`${dev.base}/_fysio/widgets`, {
+      method: "POST",
+      headers: { ...dev.user, "content-type": "application/json" },
+      body: JSON.stringify({ widgetId: "notes-count", size: "third" }),
+    });
+    expect(await w.json()).toEqual({ widgetId: "notes-count", kind: "stat", content: { value: 1, label: "note" }, actions: [{ label: "Se noter", href: "/notes" }] });
     // The developer is told the core call landed, and every example is printed as a curl line.
     expect(printed.join("\n")).toContain("sandkasse-core: appendAuditEntry fra svc:klinik-noter");
     expect(printed[0]).toContain(`curl -i '${dev.base}/health'`);

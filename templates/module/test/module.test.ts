@@ -39,6 +39,17 @@ test("en note gemmes, logges i platformens revisionslog og kan læses tilbage", 
   expect(dev.sandbox.calls.map((c) => c.operation)).toEqual(["appendAuditEntry"]);
 });
 
+test("widgetten viser klinikkens antal noter — og kun for brugerens egen klinik", async () => {
+  const dev = await start();
+  const headers = { ...dev.user, "content-type": "application/json" };
+  await fetch(`${dev.base}/notes`, { method: "POST", headers, body: JSON.stringify({ patientId: "p1", text: "a" }) });
+  const res = await fetch(`${dev.base}/_fysio/widgets`, { method: "POST", headers, body: JSON.stringify({ widgetId: "notes-count", size: "half" }) });
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ widgetId: "notes-count", kind: "stat", content: { value: 1, label: "note" }, actions: [{ label: "Se noter", href: "/notes" }] });
+  const unknown = await fetch(`${dev.base}/_fysio/widgets`, { method: "POST", headers, body: JSON.stringify({ widgetId: "andet", size: "half" }) });
+  expect(unknown.status).toBe(404);
+});
+
 test("et ukendt felt afvises — det forsvinder aldrig i stilhed", async () => {
   const dev = await start();
   const headers = { ...dev.user, "content-type": "application/json" };

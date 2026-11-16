@@ -21,6 +21,16 @@ Claude Code, Codex, Lovable, broberg.ai, Henosia og alle andre værktøjer der s
    Gem og læs altid data pr. organisation.
 7. **Manifestet** (`fysio-work.manifest.json`) skal passe til hvad modulet gør: rettigheder,
    tabeller med patientdata og hvilke værter modulet må kalde ud til.
+   **Alle nøgler og alle tilladte værdier** står i skemaet
+   `node_modules/@fysio-work/sdk/spec/manifest.schema.json` (med en forklaring ved hver nøgle).
+   Læs det før du ændrer manifestet; `npm run check` afviser alt der ikke står der.
+8. **Widgets** viser modulets vigtigste på klinikkens dashboards (Overblik). Skriv dem i
+   `widgets` i manifestet og giv hver en handler i `createModule({ widgets })` — se
+   `notes-count` i `src/module.ts`. `kind` er `stat`, `list`, `chart`, `actions` eller `custom`;
+   svaret fra platformens kald `POST /_fysio/widgets` er beskrevet i
+   `node_modules/@fysio-work/sdk/spec/module.openapi.json` (WidgetContent).
+9. **Kode er engelsk** — identifiers, filnavne, ruter, JSON-nøgler og id'er. Kommentarer,
+   tekster til brugeren og vejledninger må gerne være på dansk.
 
 ## Før du siger at noget virker
 

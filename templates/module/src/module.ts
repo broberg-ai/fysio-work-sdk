@@ -31,9 +31,18 @@ export function buildModule(deps: ModuleDeps) {
         notes.set(ctx.organization.id, forOrganization(ctx.organization.id).filter((n) => n.patientId !== patientId));
       },
     },
+    // Widgets til klinikkens dashboards — én handler pr. widget i manifestet (F007).
+    // Platformen kalder POST /_fysio/widgets med brugerens egen billet, så handleren ser kun
+    // brugerens klinik. `content` følger widgettens kind (her: stat → value, label).
+    widgets: {
+      "notes-count": async (_input, ctx) => {
+        const count = forOrganization(ctx.organization.id).length;
+        return { content: { value: count, label: count === 1 ? "note" : "noter" }, actions: [{ label: "Se noter", href: "/notes" }] };
+      },
+    },
   });
 
-  mod.app.get("/", (c) => c.json({ hej: c.var.principal.subject, organizationId: c.var.organization.id }));
+  mod.app.get("/", (c) => c.json({ hello: c.var.principal.subject, organizationId: c.var.organization.id }));
 
   mod.app.get("/notes", (c) => c.json({ notes: forOrganization(c.var.organization.id) }));
 

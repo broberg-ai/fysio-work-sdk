@@ -5,5 +5,8 @@
   "permissions": ["notes:write"],
   "patientDataTables": [],
   "egress": [],
+  "widgets": [
+    { "id": "notes-count", "title": "Noter", "description": "Hvor mange noter klinikken har skrevet.", "kind": "stat", "sizes": ["third", "half"], "permission": "notes:write" }
+  ],
   "config": { "required": [] }
 }
