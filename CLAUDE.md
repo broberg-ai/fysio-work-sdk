@@ -4,14 +4,17 @@
 
 ## Project layout
 
-> **Fill this in for THIS repo.** Every cardmem-compatible repo MUST have a `## Project layout` section with the columns `Area | Path | Notes`. The cardmem Init flow (or the `feature` skill) populates it from the repo's actual structure — replace the example rows below.
-
 | Area | Path | Notes |
 |---|---|---|
-| _(example — replace)_ App | `src/` | Main application code |
-| _(example — replace)_ Tests | `tests/` | Test suites |
-
-Replace the example rows above with this repo's real layout before relying on cardmem skills to scope changes.
+| SDK runtime | `src/` | `createModule` (`module.ts`), `strictBody`, allowlist logging, core client, sandbox, CLI (`init`, `check`) |
+| Generated TS | `src/generated/` | Zod schemas + core client from `spec/` — never edit by hand; `npm run generate` |
+| Contracts | `spec/` | `runtime.json`, `manifest.schema.json`, `module.openapi.json`, `core.openapi.json`, `events.asyncapi.json` |
+| Generator | `scripts/generate.mjs` | Builds `src/generated/` from `spec/` |
+| Module template | `templates/module/` | What `fysio-work init` copies: manifest, `createModule`, GDPR, tests, CI, `AGENTS.md` |
+| Example module | `examples/hello/` | Minimal module with a widget, run by the tests |
+| Tests | `test/` | Vitest suites + fake core + `mutations.mjs` (every mutation must turn the suite red) |
+| Docs | `docs/` | `first-module.md` (Danish guide, run by tests); plan-docs in `docs/features/` |
+| CI | `.github/workflows/` | `publish.yml` (npm via OIDC on `v*` tags), `secret-gate.yml`, `security.yml` |
 
 ## Fleet rules (cardmem-owned)
 
